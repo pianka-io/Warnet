@@ -1,6 +1,6 @@
 resource "aws_db_instance" "warnet" {
   allocated_storage      = 10
-#  identifier             = "warnet"
+  identifier             = "warnet"
   db_name                = "warnet"
   engine                 = "mariadb"
   engine_version         = "10.5.27"
