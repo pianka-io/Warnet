@@ -1,0 +1,7 @@
+environment         = "@../ansible/env.yaml"
+profile             = "default"
+account             = "869935095159"
+region              = "us-east-2"
+availability_zone   = "us-east-2a"
+vpc_id              = "vpc-06e29de4a84bc82a4"
+subnet_id           = "subnet-022414a9295e7f1e1"

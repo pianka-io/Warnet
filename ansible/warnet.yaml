@@ -1,0 +1,42 @@
+- name: Upload
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Upload Init6
+      copy:
+        src: resources/init6.tar.gz
+        dest: init6.tar.gz
+
+    - name: Upload Service
+      copy:
+        src: resources/init6.service
+        dest: init6.service
+
+    - name: Upload Config
+      copy:
+        src: resources/init6.conf
+        dest: init6.conf
+
+- name: Configure
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install Java
+      shell: |
+        yum install -y java-11-amazon-corretto-headless
+
+    - name: Relocate Files
+      shell: |
+        tar -xvzf init6.tar.gz
+        rm init6.tar.gz
+        mv init6 /opt
+        mv init6.service /etc/systemd/system/init6.service
+        mv init6.conf /opt/init6
+        sudo chmod 0777 /opt/init6
+
+    - name: Relocate Files
+      shell: |
+        systemctl enable init6.service
+        systemctl start init6.service
