@@ -49,6 +49,12 @@ resource "aws_vpc_security_group_egress_rule" "ec2_rds" {
   to_port     = 3306
 }
 
+resource "aws_vpc_security_group_egress_rule" "ec2_all" {
+  security_group_id = aws_security_group.ec2.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol = "-1"
+}
+
 resource "aws_vpc_security_group_ingress_rule" "rds_ec2" {
   security_group_id = aws_security_group.rds.id
   referenced_security_group_id = aws_security_group.ec2.id
