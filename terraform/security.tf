@@ -16,6 +16,15 @@ resource "aws_security_group" "rds" {
   }
 }
 
+
+resource "aws_vpc_security_group_ingress_rule" "ec2_ping" {
+  security_group_id = aws_security_group.ec2.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = -1
+  ip_protocol       = "icmp"
+  to_port           = -1
+}
+
 resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
   security_group_id = aws_security_group.ec2.id
   cidr_ipv4         = "47.20.130.49/32"
