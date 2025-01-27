@@ -155,7 +155,7 @@ def lambda_handler(event, context):
 
 
 def wait_for_instance_running(ec2_client, instance_id):
-    for _ in range(30):
+    for _ in range(300):
         try:
             response = ec2_client.describe_instances(InstanceIds=[instance_id])
             state = response['Reservations'][0]['Instances'][0]['State']['Name']
