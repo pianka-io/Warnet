@@ -32,6 +32,7 @@ resource "aws_iam_policy" "lambda_ec2_dns_policy" {
           "ec2:RebootInstances",
           "ec2:DescribeInstances",
           "ec2:DescribeLaunchTemplates",
+          "ec2:DescribeSecurityGroups",
           "ec2:CreateTags"
         ]
         Resource = "*"
