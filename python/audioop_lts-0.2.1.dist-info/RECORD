@@ -1,0 +1,12 @@
+audioop/__init__.py,sha256=oWXcbnbPGh4Y5C-aUKMi5ySR4sa_rZKWuBkDMMU5Zgs,759
+audioop/__init__.pyi,sha256=LoswlLbJ3fmflhpebmHBx34CRW1zj0ir-FtcUQkXZzU,2138
+audioop/__pycache__/__init__.cpython-313.pyc,,
+audioop/_audioop.abi3.so,sha256=FpLag6Qzr6P7hmQuqHFBJQLN6okm-eC45Afn3dA4QgM,237424
+audioop/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+audioop_lts-0.2.1.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+audioop_lts-0.2.1.dist-info/LICENSE,sha256=Oy-B_iHRgcSZxZolbI4ZaEVdZonSaaqFNzv7avQdo78,13936
+audioop_lts-0.2.1.dist-info/METADATA,sha256=gFzS92syqzvELRYNd4bnX50fzWBczqIYyiJOMoCdSFA,1648
+audioop_lts-0.2.1.dist-info/RECORD,,
+audioop_lts-0.2.1.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+audioop_lts-0.2.1.dist-info/WHEEL,sha256=oyYa8de7s1Fq1_62_SiRL_3KQwGWoH7HEdhOdojcPCw,220
+audioop_lts-0.2.1.dist-info/top_level.txt,sha256=zl-DTW3eCS46Ddt9xGWY-5evE7-FSvwemDaBMelsgCs,8
