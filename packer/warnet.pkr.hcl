@@ -1,7 +1,7 @@
 packer {
   required_plugins {
-    aws-baseline = {
-      version = ">= 0.0.2"
+    amazon = {
+      version = ">= 1.0.0"
       source  = "github.com/hashicorp/amazon"
     }
   }
@@ -41,7 +41,7 @@ source "amazon-ebs" "baseline" {
   availability_zone	          = "${var.availability_zone}"
   vpc_id                      = "${var.vpc_id}"
   subnet_id                   = "${var.subnet_id}"
-#  ssh_interface               = "private_ip"
+  ami_regions                 = ["us-east-2", "us-east-1", "us-west-1"]
 
   force_deregister            = true
   force_delete_snapshot       = true
@@ -54,10 +54,8 @@ source "amazon-ebs" "baseline" {
 }
 
 build {
-  name                  = "baseline"
-  sources               = [
-    "source.amazon-ebs.baseline"
-  ]
+  name    = "baseline"
+  sources = ["source.amazon-ebs.baseline"]
 
   provisioner "ansible" {
     playbook_file   = "../ansible/warnet.yaml"
@@ -66,5 +64,9 @@ build {
     extra_arguments = [
       "--extra-vars=${var.environment}"
     ]
+  }
+
+  post-processor "manifest" {
+    output = "packer-manifest.json"
   }
 }

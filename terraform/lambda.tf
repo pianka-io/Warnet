@@ -5,7 +5,7 @@ resource "aws_lambda_function" "orchestrator" {
   role             = aws_iam_role.lambda_role.arn
   runtime          = "python3.13"
   handler          = "lambda_function.lambda_handler"
-  timeout          = 10
+  timeout          = 900
 }
 
 data "archive_file" "python_lambda" {

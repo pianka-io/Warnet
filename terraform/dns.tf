@@ -8,7 +8,7 @@ resource "aws_route53_record" "naked" {
   type    = "A"
   ttl     = 15
 
-  records = [aws_instance.warnet.public_ip]
+  records = ["54.177.96.16"]
 }
 
 resource "aws_route53_record" "www" {

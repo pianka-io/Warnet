@@ -1,31 +1,118 @@
 import boto3
 import logging
-
+import random
+import time
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+AMI_IDS = {
+    "us-east-2": "ami-0ab2bf40dc65add40",
+    "us-east-1": "ami-0110ac76e8eee6a26",
+    "us-west-1": "ami-0d30c6fca97630bff"
+}
+VPC_SUBNETS = {
+    "us-east-2": ["subnet-022414a9295e7f1e1"],
+    "us-east-1": ["subnet-0ef99798b819667a9"],
+    "us-west-1": ["subnet-011e3970d07d7bb98"],
+}
+DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
+DNS_RECORD_NAME = "war.pianka.io"
+SECURITY_GROUP_NAME = "ec2"
+
+
 def lambda_handler(event, context):
-    ec2_client = boto3.client('ec2')
+    route53_client = boto3.client('route53')
 
     try:
-        instances = ec2_client.describe_instances()
+        # Step 1: Launch a new instance in a random region
+        random_region = random.choice(list(VPC_SUBNETS.keys()))
+        random_subnet = random.choice(VPC_SUBNETS[random_region])
+        ami_id = AMI_IDS[random_region]
 
-        first_instance_id = None
-        for reservation in instances['Reservations']:
-            for instance in reservation['Instances']:
-                first_instance_id = instance['InstanceId']
-                break
-            if first_instance_id:
-                break
+        logger.info(f"Selected region: {random_region}, subnet: {random_subnet}, AMI: {ami_id}")
 
-        if first_instance_id:
-            ec2_client.reboot_instances(InstanceIds=[first_instance_id])
-            result = f"Successfully rebooted instance: {first_instance_id}"
-        else:
-            result = "No EC2 instances found."
+        ec2_client = boto3.client('ec2', region_name=random_region)
+        logger.info("Describing security groups.")
+        security_groups = ec2_client.describe_security_groups(
+            Filters=[{"Name": "group-name", "Values": [SECURITY_GROUP_NAME]}]
+        )
+        if not security_groups['SecurityGroups']:
+            raise Exception(f"Security group '{SECURITY_GROUP_NAME}' not found in region {random_region}")
+        security_group_id = security_groups['SecurityGroups'][0]['GroupId']
+
+        logger.info(f"Launching new instance in region {random_region}.")
+        new_instance = ec2_client.run_instances(
+            ImageId=ami_id,
+            InstanceType="t2.xlarge",
+            MaxCount=1,
+            MinCount=1,
+            NetworkInterfaces=[
+                {
+                    "AssociatePublicIpAddress": True,
+                    "SubnetId": random_subnet,
+                    "DeviceIndex": 0,
+                    "Groups": [security_group_id]
+                }
+            ]
+        )
+        new_instance_id = new_instance['Instances'][0]['InstanceId']
+
+        logger.info(f"Waiting for instance {new_instance_id} to be running.")
+        wait_for_instance_running(ec2_client, new_instance_id)
+
+        logger.info(f"Describing new instance {new_instance_id}.")
+        new_instance_description = ec2_client.describe_instances(InstanceIds=[new_instance_id])
+        new_instance_ip = new_instance_description['Reservations'][0]['Instances'][0]['PublicIpAddress']
+
+        # Step 2: Update the DNS to point to the new instance
+        logger.info(f"Updating DNS record to point to {new_instance_ip}.")
+        route53_client.change_resource_record_sets(
+            HostedZoneId=DNS_ZONE_ID,
+            ChangeBatch={
+                "Comment": "Update to new EC2 instance",
+                "Changes": [
+                    {
+                        "Action": "UPSERT",
+                        "ResourceRecordSet": {
+                            "Name": DNS_RECORD_NAME,
+                            "Type": "A",
+                            "TTL": 15,
+                            "ResourceRecords": [{"Value": new_instance_ip}],
+                        },
+                    }
+                ],
+            },
+        )
+        logger.info(f"DNS successfully updated to {new_instance_ip}.")
+
+        # Step 3: Terminate all other running instances
+        for region in VPC_SUBNETS.keys():
+            ec2_client = boto3.client('ec2', region_name=region)
+            logger.info(f"Checking running instances in region: {region}")
+
+            instances = ec2_client.describe_instances(
+                Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+            )
+
+            for reservation in instances['Reservations']:
+                for instance in reservation['Instances']:
+                    instance_id = instance['InstanceId']
+                    if instance_id != new_instance_id:
+                        try:
+                            logger.info(f"Terminating instance {instance_id} in region {region}")
+                            ec2_client.terminate_instances(InstanceIds=[instance_id])
+                        except ec2_client.exceptions.ClientError as e:
+                            if "InvalidInstanceID.NotFound" in str(e):
+                                logger.warning(f"Instance {instance_id} not found. It might already be terminated.")
+                            else:
+                                raise
+
+        result = f"Successfully moved to new instance in region {random_region} with IP {new_instance_ip}"
+        logger.info(result)
 
     except Exception as e:
+        logger.error(f"Error: {str(e)}")
         result = f"Error: {str(e)}"
 
     return {
@@ -34,111 +121,57 @@ def lambda_handler(event, context):
     }
 
 
+def wait_for_instance_running(ec2_client, instance_id):
+    for _ in range(30):  # Poll for up to 5 minutes (30 iterations * 10 seconds)
+        try:
+            response = ec2_client.describe_instances(InstanceIds=[instance_id])
+            state = response['Reservations'][0]['Instances'][0]['State']['Name']
+            if state == 'running':
+                return True
+        except ec2_client.exceptions.ClientError as e:
+            if "InvalidInstanceID.NotFound" in str(e):
+                logger.warning(f"Instance {instance_id} not found during wait. It might already be terminated.")
+                break
+            else:
+                raise
+        time.sleep(10)
+    raise Exception(f"Instance {instance_id} did not reach 'running' state within timeout.")
+
+# uncomment for debugging
 
 # import boto3
 # import logging
-# import random
+#
 #
 # logger = logging.getLogger()
 # logger.setLevel(logging.INFO)
 #
-# AMI_ID = "ami-0cc9ac965c1eace1e"
-# VPC_SUBNETS = {
-#     "us-east-1": ["subnet-051e5ef4e1e3fe5bf"],  # Virginia
-#     "us-west-1": ["subnet-05e54382eb6b4ae70"],  # California
-# }
-# DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
-# DNS_RECORD_NAME = "war.pianka.io"
-# SECURITY_GROUP_NAME = "ec2"  # Security group to assign
 #
 # def lambda_handler(event, context):
-#     # ec2_client = boto3.client('ec2')
-#     # route53_client = boto3.client('route53')
-#     #
-#     # try:
-#     #     # Get the currently running instance
-#     #     instances = ec2_client.describe_instances(
-#     #         Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
-#     #     )
-#     #
-#     #     current_instance_id = None
-#     #     for reservation in instances['Reservations']:
-#     #         for instance in reservation['Instances']:
-#     #             current_instance_id = instance['InstanceId']
-#     #             break
-#     #         if current_instance_id:
-#     #             break
-#     #
-#     #     # Stop the current instance if found
-#     #     if current_instance_id:
-#     #         ec2_client.stop_instances(InstanceIds=[current_instance_id])
-#     #         logger.info(f"Stopped current instance: {current_instance_id}")
-#     #
-#     #     # Select a random VPC and subnet
-#     #     random_region = random.choice(list(VPC_SUBNETS.keys()))
-#     #     random_subnet = random.choice(VPC_SUBNETS[random_region])
-#     #     logger.info(f"Selected region: {random_region}, subnet: {random_subnet}")
-#     #
-#     #     # Update the client to use the selected region
-#     #     ec2_client = boto3.client('ec2', region_name=random_region)
-#     #
-#     #     # Find the security group ID by name
-#     #     security_groups = ec2_client.describe_security_groups(
-#     #         Filters=[{"Name": "group-name", "Values": [SECURITY_GROUP_NAME]}]
-#     #     )
-#     #     if not security_groups['SecurityGroups']:
-#     #         raise Exception(f"Security group '{SECURITY_GROUP_NAME}' not found in region {random_region}")
-#     #     security_group_id = security_groups['SecurityGroups'][0]['GroupId']
-#     #     logger.info(f"Using security group: {SECURITY_GROUP_NAME} (ID: {security_group_id})")
-#     #
-#     #     # Launch a new EC2 instance
-#     #     new_instance = ec2_client.run_instances(
-#     #         ImageId=AMI_ID,
-#     #         InstanceType="t2.micro",  # Adjust as needed
-#     #         MaxCount=1,
-#     #         MinCount=1,
-#     #         SubnetId=random_subnet,
-#     #         SecurityGroupIds=[security_group_id],
-#     #     )
-#     #     new_instance_id = new_instance['Instances'][0]['InstanceId']
-#     #     logger.info(f"Launched new instance: {new_instance_id}")
-#     #
-#     #     # Wait for the new instance to become running
-#     #     waiter = ec2_client.get_waiter('instance_running')
-#     #     waiter.wait(InstanceIds=[new_instance_id])
-#     #     logger.info(f"New instance is running: {new_instance_id}")
-#     #
-#     #     # Get the public IP of the new instance
-#     #     new_instance_description = ec2_client.describe_instances(InstanceIds=[new_instance_id])
-#     #     new_instance_ip = new_instance_description['Reservations'][0]['Instances'][0]['PublicIpAddress']
-#     #     logger.info(f"New instance public IP: {new_instance_ip}")
-#     #
-#     #     # Update the DNS record to point to the new instance
-#     #     route53_client.change_resource_record_sets(
-#     #         HostedZoneId=DNS_ZONE_ID,
-#     #         ChangeBatch={
-#     #             "Comment": "Update to new EC2 instance",
-#     #             "Changes": [
-#     #                 {
-#     #                     "Action": "UPSERT",
-#     #                     "ResourceRecordSet": {
-#     #                         "Name": DNS_RECORD_NAME,
-#     #                         "Type": "A",
-#     #                         "TTL": 15,
-#     #                         "ResourceRecords": [{"Value": new_instance_ip}],
-#     #                     },
-#     #                 }
-#     #             ],
-#     #         },
-#     #     )
-#     #     logger.info(f"DNS record updated to point to {new_instance_ip}")
-#     #     result = f"Successfully moved instance to region {random_region} with new IP {new_instance_ip}"
-#     #
-#     # except Exception as e:
-#     #     logger.error(f"Error: {str(e)}")
-#     #     result = f"Error: {str(e)}"
+#     ec2_client = boto3.client('ec2')
+#
+#     try:
+#         instances = ec2_client.describe_instances()
+#
+#         first_instance_id = None
+#         for reservation in instances['Reservations']:
+#             for instance in reservation['Instances']:
+#                 first_instance_id = instance['InstanceId']
+#                 break
+#             if first_instance_id:
+#                 break
+#
+#         if first_instance_id:
+#             ec2_client.reboot_instances(InstanceIds=[first_instance_id])
+#             result = f"Successfully rebooted instance: {first_instance_id}"
+#         else:
+#             result = "No EC2 instances found."
+#
+#     except Exception as e:
+#         result = f"Error: {str(e)}"
 #
 #     return {
 #         "statusCode": 200,
 #         "body": result
 #     }
+#
