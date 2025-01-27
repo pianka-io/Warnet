@@ -9,6 +9,12 @@ resource "aws_route53_record" "naked" {
   ttl     = 15
 
   records = ["54.177.96.16"]
+
+  lifecycle {
+    ignore_changes = [
+      records
+    ]
+  }
 }
 
 resource "aws_route53_record" "www" {

@@ -10,13 +10,14 @@ resource "aws_lambda_function" "orchestrator" {
 
 data "archive_file" "python_lambda" {
   type        = "zip"
-  source_file = "../python/lambda_function.py"
+  source_dir  = "../python"
   output_path = "orchestrator.zip"
 }
 
 resource "aws_cloudwatch_event_rule" "orchestrator_tick" {
   name                = "orchestrator-tick"
-  schedule_expression = "cron(0 * * * ? *)"
+  schedule_expression = "cron(*/5 * * * ? *)"
+#  schedule_expression = "cron(0 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "orchestrator_target" {

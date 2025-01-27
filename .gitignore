@@ -1,4 +1,5 @@
 **/.DS_Store
 **/init6.tar.gz
+**/venv
 terraform/.terraform/providers
 terraform/orchestrator.zip
