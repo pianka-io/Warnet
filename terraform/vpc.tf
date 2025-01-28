@@ -57,3 +57,63 @@ module "mexico_vpc" {
     aws = aws.mexico
   }
 }
+
+module "oregon_vpc" {
+  source      = "./vpc"
+  region      = "us-west-2"
+  vpc_cidr    = "10.3.0.0/16"
+  subnet_cidr = "10.3.1.0/24"
+  vpc_name    = "oregon"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-061ee5a6e52a5f131"
+    }
+  }
+
+  providers = {
+    aws = aws.oregon
+  }
+}
+
+module "montreal_vpc" {
+  source      = "./vpc"
+  region      = "ca-central-1"
+  vpc_cidr    = "10.4.0.0/16"
+  subnet_cidr = "10.4.1.0/24"
+  vpc_name    = "montreal"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-0dc5d6c9a22109620"
+    }
+  }
+
+  providers = {
+    aws = aws.montreal
+  }
+}
+
+module "calgary_vpc" {
+  source      = "./vpc"
+  region      = "ca-west-1"
+  vpc_cidr    = "10.5.0.0/16"
+  subnet_cidr = "10.5.1.0/24"
+  vpc_name    = "calgary"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-099ff12c6ef406605"
+    }
+  }
+
+  providers = {
+    aws = aws.calgary
+  }
+}

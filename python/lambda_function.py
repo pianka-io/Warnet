@@ -16,19 +16,28 @@ REGION_NAMES = {
     "us-east-2": "Ohio, USA (NORAM)",
     "us-east-1": "Virginia, USA (NORAM)",
     "us-west-1": "California, USA (NORAM)",
-    "mx-central-1": "Querétaro, Mexico (NORAM)"
+    "us-west-2": "Oregon, USA (NORAM)",
+    "mx-central-1": "Querétaro, Mexico (NORAM)",
+    "ca-central-1": "Montreal, Canda (NORAM)",
+    "ca-west-1": "Calgary, Canda (NORAM)",
 }
 AMI_IDS = {
-    "us-east-2": "ami-0a380ad61dbe54e93",
-    "us-east-1": "ami-0ce14e6227633fd82",
-    "us-west-1": "ami-0d9163bba85d0465e",
-    "mx-central-1": "ami-04982956d9ca97392"
+    "us-east-2": "ami-0e8a33c8bd2dd610e",
+    "us-east-1": "ami-01d12c3cc435df8d6",
+    "us-west-1": "ami-081517d6e3f515146",
+    "us-west-2": "ami-08b3b54fa76ba6bf9",
+    "mx-central-1": "ami-030ee8f6c98599c98",
+    "ca-central-1": "ami-08bf2733f31b36630",
+    "ca-west-1": "ami-04214dc711bd39f6e"
 }
 VPC_SUBNETS = {
     "us-east-2": ["subnet-022414a9295e7f1e1"],
     "us-east-1": ["subnet-0ef99798b819667a9"],
     "us-west-1": ["subnet-011e3970d07d7bb98"],
-    "mx-central-1": ["subnet-0b1699ad9806d9b4e"]
+    "us-west-2": ["subnet-05f0675562abf386d"],
+    "mx-central-1": ["subnet-0b1699ad9806d9b4e"],
+    "ca-central-1": ["subnet-005a726eb1f0d273f"],
+    "ca-west-1": ["subnet-0138252b6002e3f1c"]
 }
 DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
 DNS_RECORD_NAME = "war.pianka.io"
@@ -75,7 +84,8 @@ def lambda_handler(event, context):
         ami_id = AMI_IDS[random_region]
         instance_type = "t3.xlarge" if random_region == "mx-central-1" else "t2.xlarge"
 
-        logger.info(f"Selected region: {random_region}, subnet: {random_subnet}, AMI: {ami_id}, Instance Type: {instance_type}")
+        logger.info(
+            f"Selected region: {random_region}, subnet: {random_subnet}, AMI: {ami_id}, Instance Type: {instance_type}")
 
         ec2_client = boto3.client('ec2', region_name=random_region)
         security_groups = ec2_client.describe_security_groups(

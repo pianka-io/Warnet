@@ -24,3 +24,18 @@ provider "aws" {
   alias = "mexico"
   region = "mx-central-1"
 }
+
+provider "aws" {
+  alias = "oregon"
+  region = "us-west-2"
+}
+
+provider "aws" {
+  alias = "montreal"
+  region = "ca-central-1"
+}
+
+provider "aws" {
+  alias = "calgary"
+  region = "ca-west-1"
+}

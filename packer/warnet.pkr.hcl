@@ -41,7 +41,7 @@ source "amazon-ebs" "baseline" {
   availability_zone	          = "${var.availability_zone}"
   vpc_id                      = "${var.vpc_id}"
   subnet_id                   = "${var.subnet_id}"
-  ami_regions                 = ["us-east-2", "us-east-1", "us-west-1", "mx-central-1"]
+  ami_regions                 = ["us-east-2", "us-east-1", "us-west-1", "mx-central-1", "us-west-2", "ca-central-1", "ca-west-1"]
 
   force_deregister            = true
   force_delete_snapshot       = true
