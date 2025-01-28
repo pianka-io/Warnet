@@ -82,7 +82,7 @@ def lambda_handler(event, context):
         random_region = random.choice(list(VPC_SUBNETS.keys()))
         random_subnet = random.choice(VPC_SUBNETS[random_region])
         ami_id = AMI_IDS[random_region]
-        instance_type = "t3.xlarge" if random_region == "mx-central-1" else "t2.xlarge"
+        instance_type = "t3.xlarge" if random_region in ["mx-central-1", "ca-west-1"] else "t2.xlarge"
 
         logger.info(
             f"Selected region: {random_region}, subnet: {random_subnet}, AMI: {ami_id}, Instance Type: {instance_type}")
