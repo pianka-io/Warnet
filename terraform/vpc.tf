@@ -37,3 +37,23 @@ module "california_vpc" {
     aws = aws.california
   }
 }
+
+module "mexico_vpc" {
+  source      = "./vpc"
+  region      = "mx-central-1"
+  vpc_cidr    = "10.2.0.0/16"
+  subnet_cidr = "10.2.1.0/24"
+  vpc_name    = "mexico"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-042b781d39e6be7b1"
+    }
+  }
+
+  providers = {
+    aws = aws.mexico
+  }
+}

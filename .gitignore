@@ -1,5 +1,8 @@
 **/.DS_Store
 **/init6.tar.gz
 **/venv
+packer/packer-manifest.json
 terraform/.terraform/providers
+terraform/.terraform/modules
 terraform/orchestrator.zip
+notes

@@ -15,17 +15,20 @@ logger.setLevel(logging.INFO)
 REGION_NAMES = {
     "us-east-2": "Ohio",
     "us-east-1": "Virginia",
-    "us-west-1": "California"
+    "us-west-1": "California",
+    "mx-central-1": "Mexico"
 }
 AMI_IDS = {
-    "us-east-2": "ami-0ab2bf40dc65add40",
-    "us-east-1": "ami-0110ac76e8eee6a26",
-    "us-west-1": "ami-0d30c6fca97630bff"
+    "us-east-2": "ami-03f2810dfd5c17ca0",
+    "us-east-1": "ami-02acffae74b1b0a03",
+    "us-west-1": "ami-0e301aaad8cabd261",
+    "mx-central-1": "ami-012019b6f667102b5"
 }
 VPC_SUBNETS = {
     "us-east-2": ["subnet-022414a9295e7f1e1"],
     "us-east-1": ["subnet-0ef99798b819667a9"],
     "us-west-1": ["subnet-011e3970d07d7bb98"],
+    "mx-central-1": ["subnet-0b1699ad9806d9b4e"]
 }
 DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
 DNS_RECORD_NAME = "war.pianka.io"
