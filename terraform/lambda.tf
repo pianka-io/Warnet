@@ -16,7 +16,7 @@ data "archive_file" "python_lambda" {
 
 resource "aws_cloudwatch_event_rule" "orchestrator_tick" {
   name                = "orchestrator-tick"
-#  schedule_expression = "cron(*/5 * * * ? *)"
+#  schedule_expression = "cron(*/15 * * * ? *)"
   schedule_expression = "cron(0 * * * ? *)"
 }
 

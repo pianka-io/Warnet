@@ -155,7 +155,7 @@ def lambda_handler(event, context):
 
 
 def wait_for_instance_running(ec2_client, instance_id):
-    for _ in range(300):
+    for _ in range(30):
         try:
             response = ec2_client.describe_instances(InstanceIds=[instance_id])
             state = response['Reservations'][0]['Instances'][0]['State']['Name']
@@ -164,8 +164,5 @@ def wait_for_instance_running(ec2_client, instance_id):
         except ec2_client.exceptions.ClientError as e:
             if "InvalidInstanceID.NotFound" in str(e):
                 logger.warning(f"Instance {instance_id} not found during wait.")
-                break
-            else:
-                raise
         time.sleep(10)
     raise Exception(f"Instance {instance_id} did not reach 'running' state within timeout.")
