@@ -10,7 +10,7 @@ resource "aws_lambda_function" "orchestrator" {
 
 data "archive_file" "python_lambda" {
   type        = "zip"
-  source_dir  = "../python"
+  source_dir  = "../orchestrator"
   output_path = "orchestrator.zip"
 }
 
