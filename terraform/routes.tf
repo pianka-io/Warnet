@@ -9,3 +9,9 @@ resource "aws_route" "peer_connection_to_california" {
   destination_cidr_block    = "10.1.0.0/16"           # California
   vpc_peering_connection_id = "pcx-005c52f207644dc16" # California
 }
+
+resource "aws_route" "peer_connection_to_mexico" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.2.0.0/16"           # Mexico
+  vpc_peering_connection_id = "pcx-042b781d39e6be7b1" # Mexico
+}

@@ -13,16 +13,16 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 REGION_NAMES = {
-    "us-east-2": "Ohio",
-    "us-east-1": "Virginia",
-    "us-west-1": "California",
-    "mx-central-1": "Mexico"
+    "us-east-2": "Ohio, USA (NORAM)",
+    "us-east-1": "Virginia, USA (NORAM)",
+    "us-west-1": "California, USA (NORAM)",
+    "mx-central-1": "Querétaro, Mexico (NORAM)"
 }
 AMI_IDS = {
-    "us-east-2": "ami-03f2810dfd5c17ca0",
-    "us-east-1": "ami-02acffae74b1b0a03",
-    "us-west-1": "ami-0e301aaad8cabd261",
-    "mx-central-1": "ami-012019b6f667102b5"
+    "us-east-2": "ami-0a380ad61dbe54e93",
+    "us-east-1": "ami-0ce14e6227633fd82",
+    "us-west-1": "ami-0d9163bba85d0465e",
+    "mx-central-1": "ami-04982956d9ca97392"
 }
 VPC_SUBNETS = {
     "us-east-2": ["subnet-022414a9295e7f1e1"],
@@ -69,11 +69,13 @@ def lambda_handler(event, context):
     route53_client = boto3.client('route53')
 
     try:
+        # Select a random region and instance type
         random_region = random.choice(list(VPC_SUBNETS.keys()))
         random_subnet = random.choice(VPC_SUBNETS[random_region])
         ami_id = AMI_IDS[random_region]
+        instance_type = "t3.xlarge" if random_region == "mx-central-1" else "t2.xlarge"
 
-        logger.info(f"Selected region: {random_region}, subnet: {random_subnet}, AMI: {ami_id}")
+        logger.info(f"Selected region: {random_region}, subnet: {random_subnet}, AMI: {ami_id}, Instance Type: {instance_type}")
 
         ec2_client = boto3.client('ec2', region_name=random_region)
         security_groups = ec2_client.describe_security_groups(
@@ -86,7 +88,7 @@ def lambda_handler(event, context):
         logger.info(f"Launching new instance in region {random_region}.")
         new_instance = ec2_client.run_instances(
             ImageId=ami_id,
-            InstanceType="t2.xlarge",
+            InstanceType=instance_type,
             MaxCount=1,
             MinCount=1,
             NetworkInterfaces=[
@@ -127,11 +129,13 @@ def lambda_handler(event, context):
         )
         logger.info(f"DNS successfully updated to {new_instance_ip}.")
 
+        logger.info("Terminating old instances in all regions.")
         for region in VPC_SUBNETS.keys():
             ec2_client = boto3.client('ec2', region_name=region)
             instances = ec2_client.describe_instances(
                 Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
             )
+            logger.info(f"Found instances in region {region}: {instances}")
             for reservation in instances['Reservations']:
                 for instance in reservation['Instances']:
                     instance_id = instance['InstanceId']
@@ -139,6 +143,7 @@ def lambda_handler(event, context):
                         try:
                             logger.info(f"Terminating instance {instance_id} in region {region}")
                             ec2_client.terminate_instances(InstanceIds=[instance_id])
+                            logger.info(f"Instance {instance_id} termination initiated.")
                         except ec2_client.exceptions.ClientError as e:
                             if "InvalidInstanceID.NotFound" in str(e):
                                 logger.warning(f"Instance {instance_id} not found. It might already be terminated.")
