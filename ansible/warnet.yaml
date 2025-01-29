@@ -1,3 +1,18 @@
+- name: Python
+  hosts: all
+  become: true
+  tasks:
+    - name: Install pip
+      package:
+        name: python3-pip
+        state: present
+
+    - name: Install boto3 and botocore
+      pip:
+        name:
+          - boto3
+          - botocore
+
 - name: Upload
   hosts: all
   become: true
@@ -40,3 +55,80 @@
       shell: |
         systemctl enable init6.service
         systemctl start init6.service
+
+    - name: Network Settings
+      block:
+        - name: Update sysctl.conf
+          lineinfile:
+            path: /etc/sysctl.conf
+            line: "{{ item }}"
+            create: yes
+          with_items:
+            - "fs.file-max = 2097152"
+            - "net.core.rmem_max = 134217728"
+            - "net.core.wmem_max = 134217728"
+            - "net.core.netdev_max_backlog = 300000"
+            - "net.core.somaxconn = 65535"
+            - "net.ipv4.tcp_rmem = 4096 87380 134217728"
+            - "net.ipv4.tcp_wmem = 4096 65536 134217728"
+            - "net.ipv4.tcp_max_syn_backlog = 65536"
+            - "net.ipv4.tcp_syncookies = 1"
+            - "net.ipv4.tcp_max_tw_buckets = 1048576"
+            - "net.ipv4.ip_local_port_range = 1024 65535"
+            - "net.ipv4.tcp_fin_timeout = 15"
+            - "net.ipv4.tcp_keepalive_time = 120"
+            - "net.ipv4.tcp_timestamps = 1"
+            - "vm.max_map_count = 262144"
+
+        - name: Apply sysctl
+          shell: sysctl -p
+
+    - name: System Settings
+      block:
+        - name: File Descriptors
+          lineinfile:
+            path: /etc/security/limits.conf
+            line: "{{ item }}"
+          with_items:
+            - "* soft nofile 1048576"
+            - "* hard nofile 1048576"
+            - "* soft nproc 1048576"
+            - "* hard nproc 1048576"
+
+        - name: PAM Session
+          lineinfile:
+            path: /etc/pam.d/system-auth
+            line: "session required pam_limits.so"
+            state: present
+
+        - name: PAM Session (non-interactive)
+          lineinfile:
+            path: /etc/pam.d/password-auth
+            line: "session required pam_limits.so"
+            state: present
+
+- name: Secrets
+  hosts: all
+  become: true
+  tasks:
+    - name: Pull Secret Locally
+      delegate_to: localhost
+      become: false
+      command: aws secretsmanager get-secret-value --secret-id "mariadb_password" --region "us-east-2" --query "SecretString" --output text
+      register: secret_output
+      changed_when: false
+
+    - name: Extract secret value
+      set_fact:
+        mariadb_password: "{{ secret_output.stdout | default('') }}"
+
+    - name: Ensure secret is not empty
+      fail:
+        msg: "Secret mariadb_password is empty or does not exist."
+      when: mariadb_password | length == 0
+
+    - name: Write Secret
+      replace:
+        path: /opt/init6/init6.conf
+        regexp: "<DBPASSWORD>"
+        replace: "{{ mariadb_password }}"

@@ -70,9 +70,17 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_ping" {
   to_port           = -1
 }
 
-resource "aws_vpc_security_group_ingress_rule" "ec2_ssh" {
-  cidr_ipv4         = "0.0.0.0/0"
+resource "aws_vpc_security_group_ingress_rule" "ec2_ssh_1" {
   security_group_id = aws_security_group.ec2.id
+  cidr_ipv4         = "47.20.0.0/16"
+  from_port         = 22
+  ip_protocol       = "tcp"
+  to_port           = 22
+}
+
+resource "aws_vpc_security_group_ingress_rule" "ec2_ssh_2" {
+  security_group_id = aws_security_group.ec2.id
+  cidr_ipv4         = "104.0.0.0/16"
   from_port         = 22
   ip_protocol       = "tcp"
   to_port           = 22

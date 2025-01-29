@@ -1,5 +1,5 @@
-resource "aws_iam_role" "lambda_role" {
-  name = "lambda-ec2-dns-role"
+resource "aws_iam_role" "orchestrator" {
+  name = "orchestrator"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -15,9 +15,9 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
-resource "aws_iam_policy" "lambda_ec2_dns_policy" {
-  name        = "lambda-ec2-dns-policy"
-  description = "Policy for Lambda to manage EC2 and DNS"
+resource "aws_iam_policy" "orchestrator" {
+  name        = "orchestrator"
+  description = "Policy for Lambda to manage EC2, DNS, Secrets Manager, and other required resources"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -32,8 +32,11 @@ resource "aws_iam_policy" "lambda_ec2_dns_policy" {
           "ec2:RebootInstances",
           "ec2:DescribeInstances",
           "ec2:DescribeLaunchTemplates",
+          "ec2:DescribeImages",
+          "ec2:DescribeSubnets",
           "ec2:DescribeSecurityGroups",
-          "ec2:CreateTags"
+          "ec2:CreateTags",
+          "ec2:DescribeVpcs"
         ]
         Resource = "*"
       },
@@ -49,6 +52,13 @@ resource "aws_iam_policy" "lambda_ec2_dns_policy" {
       {
         Effect = "Allow",
         Action = [
+          "secretsmanager:GetSecretValue"
+        ],
+        Resource = "arn:aws:secretsmanager:*:*:secret:discord_token"
+      },
+      {
+        Effect = "Allow",
+        Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
@@ -59,7 +69,7 @@ resource "aws_iam_policy" "lambda_ec2_dns_policy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_policy_attachment" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = aws_iam_policy.lambda_ec2_dns_policy.arn
+resource "aws_iam_role_policy_attachment" "orchestrator" {
+  role       = aws_iam_role.orchestrator.name
+  policy_arn = aws_iam_policy.orchestrator.arn
 }

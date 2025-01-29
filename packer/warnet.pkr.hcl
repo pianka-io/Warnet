@@ -35,6 +35,10 @@ variable "subnet_id" {
   type = string
 }
 
+variable "ami_name" {
+  default = "warnet"
+}
+
 source "amazon-ebs" "baseline" {
   profile                     = "${var.profile}"
   region                      = "${var.region}"
@@ -46,7 +50,7 @@ source "amazon-ebs" "baseline" {
   force_deregister            = true
   force_delete_snapshot       = true
 
-  ami_name                    = "warnet"
+  ami_name                    = "${var.ami_name}"
   instance_type               = "t2.xlarge"
   source_ami                  = "ami-0eb070c40e6a142a3"
   ssh_username                = "ec2-user"

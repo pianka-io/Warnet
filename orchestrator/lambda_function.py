@@ -5,7 +5,6 @@ import random
 import time
 import discord
 
-DISCORD_TOKEN = ""
 GUILD_ID = 1332524138681598104
 CHANNEL_ID = 1333535069117353984
 
@@ -20,24 +19,6 @@ REGION_NAMES = {
     "mx-central-1": "Querétaro, Mexico (NORAM)",
     "ca-central-1": "Montreal, Canda (NORAM)",
     "ca-west-1": "Calgary, Canda (NORAM)",
-}
-AMI_IDS = {
-    "us-east-2": "ami-0e8a33c8bd2dd610e",
-    "us-east-1": "ami-01d12c3cc435df8d6",
-    "us-west-1": "ami-081517d6e3f515146",
-    "us-west-2": "ami-08b3b54fa76ba6bf9",
-    "mx-central-1": "ami-030ee8f6c98599c98",
-    "ca-central-1": "ami-08bf2733f31b36630",
-    "ca-west-1": "ami-04214dc711bd39f6e"
-}
-VPC_SUBNETS = {
-    "us-east-2": ["subnet-022414a9295e7f1e1"],
-    "us-east-1": ["subnet-0ef99798b819667a9"],
-    "us-west-1": ["subnet-011e3970d07d7bb98"],
-    "us-west-2": ["subnet-05f0675562abf386d"],
-    "mx-central-1": ["subnet-0b1699ad9806d9b4e"],
-    "ca-central-1": ["subnet-005a726eb1f0d273f"],
-    "ca-west-1": ["subnet-0138252b6002e3f1c"]
 }
 DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
 DNS_RECORD_NAME = "war.pianka.io"
@@ -71,29 +52,35 @@ async def send_message(message_content):
         finally:
             await client.close()
 
-    await client.start(DISCORD_TOKEN)
+    await client.start(get_discord_token())
 
 
 def lambda_handler(event, context):
-    route53_client = boto3.client('route53')
+    route53_client = boto3.client("route53")
 
     try:
         # Select a random region and instance type
-        random_region = random.choice(list(VPC_SUBNETS.keys()))
-        random_subnet = random.choice(VPC_SUBNETS[random_region])
-        ami_id = AMI_IDS[random_region]
-        instance_type = "t3.xlarge" if random_region in ["mx-central-1", "ca-west-1"] else "t2.xlarge"
+        random_region = random.choice(list(REGION_NAMES.keys()))
+        if random_region == "us-east-2":
+            random_subnet = "subnet-022414a9295e7f1e1"
+        else:
+            random_subnet = get_vpc_subnet(random_region)
+            logger.info(f"Fetched VPC Subnet ID for region {random_region}: {random_subnet}")
+
+        ami_id = get_latest_warnet_ami(random_region)
+        logger.info(f"Fetched latest 'warnet' AMI ID for region {random_region}: {ami_id}")
+        instance_type = "t3.xlarge" if random_region in ["mx-central-1", "ca-west-1", "ca-central-1d"] else "t2.xlarge"
 
         logger.info(
             f"Selected region: {random_region}, subnet: {random_subnet}, AMI: {ami_id}, Instance Type: {instance_type}")
 
-        ec2_client = boto3.client('ec2', region_name=random_region)
+        ec2_client = boto3.client("ec2", region_name=random_region)
         security_groups = ec2_client.describe_security_groups(
             Filters=[{"Name": "group-name", "Values": [SECURITY_GROUP_NAME]}]
         )
-        if not security_groups['SecurityGroups']:
+        if not security_groups["SecurityGroups"]:
             raise Exception(f"Security group '{SECURITY_GROUP_NAME}' not found in region {random_region}")
-        security_group_id = security_groups['SecurityGroups'][0]['GroupId']
+        security_group_id = security_groups["SecurityGroups"][0]["GroupId"]
 
         logger.info(f"Launching new instance in region {random_region}.")
         new_instance = ec2_client.run_instances(
@@ -110,14 +97,14 @@ def lambda_handler(event, context):
                 }
             ]
         )
-        new_instance_id = new_instance['Instances'][0]['InstanceId']
+        new_instance_id = new_instance["Instances"][0]["InstanceId"]
 
         logger.info(f"Waiting for instance {new_instance_id} to be running.")
         wait_for_instance_running(ec2_client, new_instance_id)
 
         logger.info(f"Describing new instance {new_instance_id}.")
         new_instance_description = ec2_client.describe_instances(InstanceIds=[new_instance_id])
-        new_instance_ip = new_instance_description['Reservations'][0]['Instances'][0]['PublicIpAddress']
+        new_instance_ip = new_instance_description["Reservations"][0]["Instances"][0]["PublicIpAddress"]
 
         logger.info(f"Updating DNS record to point to {new_instance_ip}.")
         route53_client.change_resource_record_sets(
@@ -140,15 +127,15 @@ def lambda_handler(event, context):
         logger.info(f"DNS successfully updated to {new_instance_ip}.")
 
         logger.info("Terminating old instances in all regions.")
-        for region in VPC_SUBNETS.keys():
-            ec2_client = boto3.client('ec2', region_name=region)
+        for region in REGION_NAMES.keys():
+            ec2_client = boto3.client("ec2", region_name=region)
             instances = ec2_client.describe_instances(
                 Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
             )
             logger.info(f"Found instances in region {region}: {instances}")
-            for reservation in instances['Reservations']:
-                for instance in reservation['Instances']:
-                    instance_id = instance['InstanceId']
+            for reservation in instances["Reservations"]:
+                for instance in reservation["Instances"]:
+                    instance_id = instance["InstanceId"]
                     if instance_id != new_instance_id:
                         try:
                             logger.info(f"Terminating instance {instance_id} in region {region}")
@@ -172,12 +159,64 @@ def lambda_handler(event, context):
     }
 
 
+def get_discord_token():
+    secrets_client = boto3.client("secretsmanager")
+    secret_name = "discord_token_ugh"
+    response = secrets_client.get_secret_value(SecretId=secret_name)
+    if "SecretString" not in response:
+        raise Exception(f"Secret {secret_name} does not contain a string value.")
+    return response["SecretString"]
+
+
+def get_latest_warnet_ami(region_name):
+    ec2_client = boto3.client("ec2", region_name=region_name)
+    response = ec2_client.describe_images(
+        Owners=["self"],
+        Filters=[
+            {"Name": "name", "Values": ["warnet"]},
+            {"Name": "state", "Values": ["available"]}
+        ]
+    )
+    images = response["Images"]
+    if not images:
+        raise Exception(f"No AMIs found with name 'warnet' in region {region_name}")
+    latest_image = max(images, key=lambda img: img["CreationDate"])
+    return latest_image["ImageId"]
+
+
+def get_vpc_subnet(region_name):
+    ec2_client = boto3.client("ec2", region_name=region_name)
+    response = ec2_client.describe_subnets(
+        Filters=[
+            {"Name": "tag:Name", "Values": ["*-subnet"]},
+            {"Name": "vpc-id", "Values": [get_vpc_id(region_name)]}
+        ]
+    )
+    subnets = response["Subnets"]
+    if not subnets:
+        raise Exception(f"No subnets with tag 'Name' ending in '-subnet' found in region {region_name}.")
+    return subnets[0]["SubnetId"]
+
+
+def get_vpc_id(region_name):
+    ec2_client = boto3.client("ec2", region_name=region_name)
+    response = ec2_client.describe_vpcs(
+        Filters=[
+            {"Name": "is-default", "Values": ["false"]}
+        ]
+    )
+    vpcs = response["Vpcs"]
+    if not vpcs:
+        raise Exception(f"No non-default VPC found in region {region_name}.")
+    return vpcs[0]["VpcId"]
+
+
 def wait_for_instance_running(ec2_client, instance_id):
     for _ in range(30):
         try:
             response = ec2_client.describe_instances(InstanceIds=[instance_id])
-            state = response['Reservations'][0]['Instances'][0]['State']['Name']
-            if state == 'running':
+            state = response["Reservations"][0]["Instances"][0]["State"]["Name"]
+            if state == "running":
                 return True
         except ec2_client.exceptions.ClientError as e:
             if "InvalidInstanceID.NotFound" in str(e):

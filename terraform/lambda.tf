@@ -2,7 +2,7 @@ resource "aws_lambda_function" "orchestrator" {
   function_name    = "orchestrator"
   filename         = "orchestrator.zip"
   source_code_hash = data.archive_file.python_lambda.output_base64sha256
-  role             = aws_iam_role.lambda_role.arn
+  role             = aws_iam_role.orchestrator.arn
   runtime          = "python3.13"
   handler          = "lambda_function.lambda_handler"
   timeout          = 900
