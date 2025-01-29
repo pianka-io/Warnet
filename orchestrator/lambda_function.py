@@ -86,6 +86,7 @@ def lambda_handler(event, context):
         new_instance = ec2_client.run_instances(
             ImageId=ami_id,
             InstanceType=instance_type,
+            KeyName="warnet",
             MaxCount=1,
             MinCount=1,
             NetworkInterfaces=[
