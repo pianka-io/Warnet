@@ -69,7 +69,7 @@ def lambda_handler(event, context):
 
         ami_id = get_latest_warnet_ami(random_region)
         logger.info(f"Fetched latest 'warnet' AMI ID for region {random_region}: {ami_id}")
-        instance_type = "t3.xlarge" if random_region in ["mx-central-1", "ca-west-1", "ca-central-1d"] else "t2.xlarge"
+        instance_type = "t3.xlarge" if random_region in ["mx-central-1", "ca-west-1", "ca-central-1"] else "t2.xlarge"
 
         logger.info(
             f"Selected region: {random_region}, subnet: {random_subnet}, AMI: {ami_id}, Instance Type: {instance_type}")
