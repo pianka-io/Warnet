@@ -59,8 +59,11 @@ def lambda_handler(event, context):
     route53_client = boto3.client("route53")
 
     try:
-        # Select a random region and instance type
-        random_region = random.choice(list(REGION_NAMES.keys()))
+        last_used_region = get_last_used_region()
+        available_regions = [r for r in REGION_NAMES.keys() if r != last_used_region]
+        random_region = random.choice(available_regions)
+        set_last_used_region(random_region)
+
         if random_region == "us-east-2":
             random_subnet = "subnet-022414a9295e7f1e1"
         else:
@@ -224,3 +227,22 @@ def wait_for_instance_running(ec2_client, instance_id):
                 logger.warning(f"Instance {instance_id} not found during wait.")
         time.sleep(10)
     raise Exception(f"Instance {instance_id} did not reach 'running' state within timeout.")
+
+
+def get_last_used_region():
+    ssm_client = boto3.client("ssm")
+    try:
+        response = ssm_client.get_parameter(Name="last_used_region")
+        return response["Parameter"]["Value"]
+    except ssm_client.exceptions.ParameterNotFound:
+        return None
+
+
+def set_last_used_region(region):
+    ssm_client = boto3.client("ssm")
+    ssm_client.put_parameter(
+        Name="last_used_region",
+        Value=region,
+        Type="String",
+        Overwrite=True
+    )
