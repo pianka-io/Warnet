@@ -65,6 +65,14 @@ resource "aws_iam_policy" "orchestrator" {
           "logs:PutLogEvents"
         ],
         Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ssm:GetParameter",
+          "ssm:PutParameter"
+        ],
+        Resource = "arn:aws:ssm:*:*:parameter/last_used_region"
       }
     ]
   })
