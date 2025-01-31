@@ -106,7 +106,7 @@ def lambda_handler(event, context):
         location = REGION_NAMES[random_region]
         lat, lon = get_location_coordinates(location)
         map_url = get_map_url(lat, lon)
-        message = f"Warnet server moved to **{location}** at **{new_instance_ip}**"
+        message = f"Server moved to **{location}** at **{new_instance_ip}**"
 
         asyncio.run(send_message(message, map_url))
 
