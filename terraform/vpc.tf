@@ -1,3 +1,4 @@
+/* NORAM */
 module "virginia_vpc" {
   source      = "./vpc"
   region      = "us-east-1"
@@ -115,5 +116,26 @@ module "calgary_vpc" {
 
   providers = {
     aws = aws.calgary
+  }
+}
+
+/* LATAM */
+module "sao_paulo_vpc" {
+  source      = "./vpc"
+  region      = "sa-east-1"
+  vpc_cidr    = "10.6.0.0/16"
+  subnet_cidr = "10.6.1.0/24"
+  vpc_name    = "sau_paulo"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-01460a2c5d7e54929"
+    }
+  }
+
+  providers = {
+    aws = aws.sao_paulo
   }
 }

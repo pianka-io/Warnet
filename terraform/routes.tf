@@ -33,3 +33,9 @@ resource "aws_route" "peer_connection_to_calgary" {
   destination_cidr_block    = "10.5.0.0/16"           # Calgary
   vpc_peering_connection_id = "pcx-099ff12c6ef406605" # Calgary
 }
+
+resource "aws_route" "peer_connection_to_sao_paulo" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.6.0.0/16"           # Sao Paulo
+  vpc_peering_connection_id = "pcx-01460a2c5d7e54929" # Sao Paulo
+}

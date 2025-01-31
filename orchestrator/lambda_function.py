@@ -20,6 +20,7 @@ REGION_NAMES = {
     "mx-central-1": "Querétaro, Mexico (NORAM)",
     "ca-central-1": "Montreal, Canada (NORAM)",
     "ca-west-1": "Calgary, Canada (NORAM)",
+    "sa-east-1": "São Paulo, Brazil (LATAM)",
 }
 DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
 DNS_RECORD_NAME = "war.pianka.io"

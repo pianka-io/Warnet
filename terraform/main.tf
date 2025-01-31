@@ -39,3 +39,8 @@ provider "aws" {
   alias = "calgary"
   region = "ca-west-1"
 }
+
+provider "aws" {
+  alias = "sao_paulo"
+  region = "sa-east-1"
+}
