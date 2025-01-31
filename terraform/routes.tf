@@ -39,3 +39,21 @@ resource "aws_route" "peer_connection_to_sao_paulo" {
   destination_cidr_block    = "10.6.0.0/16"           # Sao Paulo
   vpc_peering_connection_id = "pcx-01460a2c5d7e54929" # Sao Paulo
 }
+
+resource "aws_route" "peer_connection_to_frankfurt" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.7.0.0/16"           # Frankfurt
+  vpc_peering_connection_id = "pcx-09d1508817a37385b" # Frankfurt
+}
+
+resource "aws_route" "peer_connection_to_ireland" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.8.0.0/16"           # Ireland
+  vpc_peering_connection_id = "pcx-0ab2d03b7470b6d51" # Ireland
+}
+
+resource "aws_route" "peer_connection_to_london" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.9.0.0/16"           # London
+  vpc_peering_connection_id = "pcx-009d105bcfdc94101" # London
+}

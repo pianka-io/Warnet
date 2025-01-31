@@ -44,3 +44,18 @@ provider "aws" {
   alias = "sao_paulo"
   region = "sa-east-1"
 }
+
+provider "aws" {
+  alias = "frankfurt"
+  region = "eu-central-1"
+}
+
+provider "aws" {
+  alias = "ireland"
+  region = "eu-west-1"
+}
+
+provider "aws" {
+  alias = "london"
+  region = "eu-west-2"
+}

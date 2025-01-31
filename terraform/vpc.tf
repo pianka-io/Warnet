@@ -139,3 +139,65 @@ module "sao_paulo_vpc" {
     aws = aws.sao_paulo
   }
 }
+
+/* EMEA */
+// europe
+module "frankfurt_vpc" {
+  source      = "./vpc"
+  region      = "eu-central-1"
+  vpc_cidr    = "10.7.0.0/16"
+  subnet_cidr = "10.7.1.0/24"
+  vpc_name    = "frankfurt"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-09d1508817a37385b"
+    }
+  }
+
+  providers = {
+    aws = aws.frankfurt
+  }
+}
+
+module "ireland_vpc" {
+  source      = "./vpc"
+  region      = "eu-west-1"
+  vpc_cidr    = "10.8.0.0/16"
+  subnet_cidr = "10.8.1.0/24"
+  vpc_name    = "ireland"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-0ab2d03b7470b6d51"
+    }
+  }
+
+  providers = {
+    aws = aws.ireland
+  }
+}
+
+module "london_vpc" {
+  source      = "./vpc"
+  region      = "eu-west-2"
+  vpc_cidr    = "10.9.0.0/16"
+  subnet_cidr = "10.9.1.0/24"
+  vpc_name    = "london"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-009d105bcfdc94101"
+    }
+  }
+
+  providers = {
+    aws = aws.london
+  }
+}
