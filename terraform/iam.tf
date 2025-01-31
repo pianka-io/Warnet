@@ -55,7 +55,7 @@ resource "aws_iam_policy" "orchestrator" {
         Action = [
           "secretsmanager:GetSecretValue"
         ],
-        Resource = "arn:aws:secretsmanager:*:*:secret:discord_token"
+        Resource = "arn:aws:secretsmanager:*:*:secret:discord_token_ugh*"
       },
       {
         Effect = "Allow",
@@ -73,7 +73,14 @@ resource "aws_iam_policy" "orchestrator" {
           "ssm:PutParameter"
         ],
         Resource = "arn:aws:ssm:*:*:parameter/last_used_region"
-      }
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ],
+        Resource = "arn:aws:secretsmanager:*:*:secret:locationiq_api_key_ugh*"
+      },
     ]
   })
 }
