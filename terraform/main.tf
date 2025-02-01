@@ -59,3 +59,28 @@ provider "aws" {
   alias = "london"
   region = "eu-west-2"
 }
+
+provider "aws" {
+  alias = "milan"
+  region = "eu-south-1"
+}
+
+provider "aws" {
+  alias = "paris"
+  region = "eu-west-3"
+}
+
+provider "aws" {
+  alias = "spain"
+  region = "eu-south-2"
+}
+
+provider "aws" {
+  alias = "stockholm"
+  region = "eu-north-1"
+}
+
+provider "aws" {
+  alias = "zurich"
+  region = "eu-central-2"
+}

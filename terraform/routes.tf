@@ -57,3 +57,33 @@ resource "aws_route" "peer_connection_to_london" {
   destination_cidr_block    = "10.9.0.0/16"           # London
   vpc_peering_connection_id = "pcx-009d105bcfdc94101" # London
 }
+
+resource "aws_route" "peer_connection_to_milan" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.10.0.0/16"          # Milan
+  vpc_peering_connection_id = "pcx-0c05fc662f79f7f12" # Milan
+}
+
+resource "aws_route" "peer_connection_to_paris" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.11.0.0/16"          # Paris
+  vpc_peering_connection_id = "pcx-03ffb80ca336f2168" # Paris
+}
+
+resource "aws_route" "peer_connection_to_spain" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.12.0.0/16"          # Spain
+  vpc_peering_connection_id = "pcx-0341b68c6de6b9861" # Spain
+}
+
+resource "aws_route" "peer_connection_to_stockholm" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.13.0.0/16"          # Stockholm
+  vpc_peering_connection_id = "pcx-0fddedecf228089df" # Stockholm
+}
+
+resource "aws_route" "peer_connection_to_zurich" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.14.0.0/16"          # Zurich
+  vpc_peering_connection_id = "pcx-05b75f0ee829cea50" # Zurich
+}

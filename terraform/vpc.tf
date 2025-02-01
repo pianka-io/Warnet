@@ -201,3 +201,103 @@ module "london_vpc" {
     aws = aws.london
   }
 }
+
+module "milan_vpc" {
+  source      = "./vpc"
+  region      = "eu-south-1"
+  vpc_cidr    = "10.10.0.0/16"
+  subnet_cidr = "10.10.1.0/24"
+  vpc_name    = "milan"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-0c05fc662f79f7f12"
+    }
+  }
+
+  providers = {
+    aws = aws.milan
+  }
+}
+
+module "paris_vpc" {
+  source      = "./vpc"
+  region      = "eu-west-3"
+  vpc_cidr    = "10.11.0.0/16"
+  subnet_cidr = "10.11.1.0/24"
+  vpc_name    = "paris"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-03ffb80ca336f2168"
+    }
+  }
+
+  providers = {
+    aws = aws.paris
+  }
+}
+
+module "spain_vpc" {
+  source      = "./vpc"
+  region      = "eu-south-2"
+  vpc_cidr    = "10.12.0.0/16"
+  subnet_cidr = "10.12.1.0/24"
+  vpc_name    = "spain"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-0341b68c6de6b9861"
+    }
+  }
+
+  providers = {
+    aws = aws.spain
+  }
+}
+
+module "stockholm_vpc" {
+  source      = "./vpc"
+  region      = "eu-north-1"
+  vpc_cidr    = "10.13.0.0/16"
+  subnet_cidr = "10.13.1.0/24"
+  vpc_name    = "stockholm"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-0fddedecf228089df"
+    }
+  }
+
+  providers = {
+    aws = aws.stockholm
+  }
+}
+
+module "zurich_vpc" {
+  source      = "./vpc"
+  region      = "eu-central-2"
+  vpc_cidr    = "10.14.0.0/16"
+  subnet_cidr = "10.14.1.0/24"
+  vpc_name    = "zurich"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-05b75f0ee829cea50"
+    }
+  }
+
+  providers = {
+    aws = aws.zurich
+  }
+}

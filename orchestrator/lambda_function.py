@@ -24,6 +24,11 @@ REGION_NAMES = {
     "eu-central-1": "Frankfurt, Germany (EMEA)",
     "eu-west-1": "Dublin, Ireland (EMEA)",
     "eu-west-2": "London, UK (EMEA)",
+    "eu-south-1": "Milan, Italy (EMEA)",
+    "eu-west-3": "Paris, France (EMEA)",
+    "eu-south-2": "Aragón, Spain (EMEA)",
+    "eu-north-1": "Stockholm, Sweden (EMEA)",
+    "eu-central-2": "Zürich, Switzerland (EMEA)",
 }
 DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
 DNS_RECORD_NAME = "war.pianka.io"
@@ -40,7 +45,15 @@ def lambda_handler(event, context):
         set_last_used_region(random_region)
 
         ami_id = get_latest_warnet_ami(random_region)
-        instance_type = "t3.xlarge" if random_region in ["mx-central-1", "ca-west-1", "ca-central-1"] else "t2.xlarge"
+        instance_type = "t3.xlarge" if random_region in [
+            "mx-central-1",
+            "ca-west-1",
+            "ca-central-1",
+            "eu-south-1",
+            "eu-south-2",
+            "eu-north-1",
+            "eu-central-2"
+        ] else "t2.xlarge"
 
         ec2_client = boto3.client("ec2", region_name=random_region)
         security_groups = ec2_client.describe_security_groups(
