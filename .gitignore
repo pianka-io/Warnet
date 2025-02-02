@@ -1,6 +1,4 @@
 **/.DS_Store
-**/init6.tar.gz
-**/WarCast-1.0.zip
 **/venv
 packer/packer-manifest.json
 terraform/.terraform/providers
