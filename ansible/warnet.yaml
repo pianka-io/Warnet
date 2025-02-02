@@ -111,24 +111,129 @@
   hosts: all
   become: true
   tasks:
-    - name: Pull Secret Locally
+    - name: Pull mariadb_password Secret Locally
       delegate_to: localhost
       become: false
       command: aws secretsmanager get-secret-value --secret-id "mariadb_password" --region "us-east-2" --query "SecretString" --output text
-      register: secret_output
+      register: mariadb_secret_output
       changed_when: false
 
-    - name: Extract secret value
+    - name: Extract mariadb_password Secret Value
       set_fact:
-        mariadb_password: "{{ secret_output.stdout | default('') }}"
+        mariadb_password: "{{ mariadb_secret_output.stdout | default('') }}"
 
-    - name: Ensure secret is not empty
+    - name: Ensure mariadb_password is not empty
       fail:
         msg: "Secret mariadb_password is empty or does not exist."
       when: mariadb_password | length == 0
 
-    - name: Write Secret
+    - name: Write mariadb_password Secret to Config
       replace:
         path: /opt/init6/init6.conf
         regexp: "<DBPASSWORD>"
         replace: "{{ mariadb_password }}"
+
+    - name: Pull discord_token_ugh Secret Locally
+      delegate_to: localhost
+      become: false
+      command: aws secretsmanager get-secret-value --secret-id "discord_token_ugh" --region "us-east-2" --query "SecretString" --output text
+      register: discord_token_output
+      changed_when: false
+
+    - name: Extract discord_token_ugh Secret Value
+      set_fact:
+        discord_token: "{{ discord_token_output.stdout | default('') }}"
+
+    - name: Ensure discord_token is not empty
+      fail:
+        msg: "Secret discord_token_ugh is empty or does not exist."
+      when: discord_token | length == 0
+
+    - name: Ensure /opt/WarCast directory exists
+      file:
+        path: /opt/WarCast
+        state: directory
+        mode: '0755'
+
+    - name: Write discord_token_ugh Secret to File
+      copy:
+        dest: /opt/WarCast/discord_token
+        content: "{{ discord_token }}"
+        mode: '0777'
+
+- name: Upload WarCast
+  hosts: all
+  become: true
+  tasks:
+    - name: Upload WarCast Zip
+      copy:
+        src: resources/WarCast-1.0.zip
+        dest: /tmp/WarCast-1.0.zip
+
+    - name: Ensure /opt/WarCast exists
+      file:
+        path: /opt/WarCast
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+
+    - name: Extract WarCast to /tmp/WarCast-1.0
+      unarchive:
+        src: /tmp/WarCast-1.0.zip
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move WarCast contents to /opt/WarCast
+      shell: mv /tmp/WarCast-1.0/* /opt/WarCast/
+      args:
+        removes: /tmp/WarCast-1.0
+
+    - name: Remove temporary extracted folder
+      file:
+        path: /tmp/WarCast-1.0
+        state: absent
+
+    - name: Set execute permissions for bin folder
+      file:
+        path: /opt/WarCast/bin
+        state: directory
+        mode: '0755'
+        recurse: yes
+        owner: ec2-user
+        group: ec2-user
+
+- name: Configure WarCast as Systemd Service
+  hosts: all
+  become: true
+  tasks:
+    - name: Create WarCast Systemd Service File
+      copy:
+        dest: /etc/systemd/system/warcast.service
+        content: |
+          [Unit]
+          Description=WarCast Service
+          After=network.target
+
+          [Service]
+          WorkingDirectory=/opt/WarCast
+          ExecStartPre=/bin/sleep 60
+          ExecStart=/opt/WarCast/bin/WarCast
+          Restart=always
+          User=ec2-user
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload Systemd Daemon
+      shell: systemctl daemon-reload
+
+    - name: Enable WarCast Service
+      systemd:
+        name: warcast
+        enabled: yes
+
+    - name: Start WarCast Service
+      systemd:
+        name: warcast
+        state: started

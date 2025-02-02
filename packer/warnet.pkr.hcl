@@ -87,6 +87,15 @@ build {
     ]
   }
 
+  provisioner "ansible" {
+    playbook_file   = "../ansible/nginx.yaml"
+    use_proxy       = false
+
+    extra_arguments = [
+      "--extra-vars=${var.environment}"
+    ]
+  }
+
   post-processor "manifest" {
     output = "packer-manifest.json"
   }

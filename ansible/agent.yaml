@@ -1,0 +1,87 @@
+- name: Deploy Python Agent as a Systemd Service
+  hosts: all
+  become: true
+  tasks:
+    - name: Install dependencies
+      yum:
+        name:
+          - gcc
+          - gcc-c++
+          - make
+          - zlib-devel
+          - bzip2
+          - bzip2-devel
+          - readline-devel
+          - sqlite
+          - sqlite-devel
+          - openssl-devel
+          - tk-devel
+          - libffi-devel
+          - xz-devel
+          - wget
+        state: present
+
+    - name: Ensure Python 3.13 is installed
+      shell: |
+        PYTHON_VERSION=$(python3.13 --version 2>/dev/null || echo "missing")
+        if [ "$PYTHON_VERSION" == "missing" ]; then
+            cd /usr/src
+            wget https://www.python.org/ftp/python/3.13.0/Python-3.13.0.tar.xz
+            tar xJf Python-3.13.0.tar.xz
+            cd Python-3.13.0
+            ./configure --enable-optimizations
+            make -j$(nproc)
+            make altinstall
+        fi
+      args:
+        creates: /usr/local/bin/python3.13
+
+    - name: Ensure /opt/agent directory exists
+      file:
+        path: /opt/agent
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+
+    - name: Upload Python agent code
+      copy:
+        src: ../agent/
+        dest: /opt/agent/
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+
+    - name: Create Python virtual environment
+      command: /usr/local/bin/python3.13 -m venv /opt/agent/venv
+      args:
+        creates: /opt/agent/venv
+
+    - name: Install dependencies from requirements.txt
+      pip:
+        requirements: /opt/agent/requirements.txt
+        virtualenv: /opt/agent/venv
+        virtualenv_command: /usr/local/bin/python3.13 -m venv
+
+    - name: Create systemd service for Python agent
+      copy:
+        dest: /etc/systemd/system/agent.service
+        content: |
+          [Unit]
+          Description=Python Agent Service
+          After=network.target
+
+          [Service]
+          WorkingDirectory=/opt/agent
+          ExecStart=/opt/agent/venv/bin/python /opt/agent/main.py
+          Restart=always
+          User=ec2-user
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd and enable agent service
+      systemd:
+        name: agent
+        enabled: yes
+        state: restarted

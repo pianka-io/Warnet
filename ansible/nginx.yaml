@@ -1,0 +1,129 @@
+- name: Setup Nginx with SSL and WebSockets Proxy (Packer-Compatible)
+  hosts: all
+  become: true
+  tasks:
+    - name: Install Required Packages (Nginx, Certbot, OpenSSL, Cronie)
+      yum:
+        name:
+          - nginx
+          - certbot
+          - certbot-nginx
+          - openssl
+          - cronie
+        state: present
+
+    - name: Ensure Cron Service is Enabled and Running
+      systemd:
+        name: crond
+        enabled: yes
+        state: started
+
+    - name: Ensure required directories exist
+      file:
+        path: /etc/ssl/self-signed
+        state: directory
+        mode: '0755'
+
+    - name: Generate a self-signed SSL certificate
+      command: >
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout /etc/ssl/self-signed/nginx-selfsigned.key
+        -out /etc/ssl/self-signed/nginx-selfsigned.crt
+        -subj "/CN=war.pianka.io"
+      args:
+        creates: /etc/ssl/self-signed/nginx-selfsigned.crt
+
+    - name: Create a dummy Diffie-Hellman group
+      command: openssl dhparam -out /etc/ssl/self-signed/dhparam.pem 2048
+      args:
+        creates: /etc/ssl/self-signed/dhparam.pem
+
+    - name: Create Nginx configuration for war.pianka.io
+      copy:
+        dest: /etc/nginx/conf.d/war.pianka.io.conf
+        content: |
+          server {
+              listen 80;
+              server_name war.pianka.io;
+              location /.well-known/acme-challenge/ {
+                  root /var/www/html;
+              }
+              return 301 https://$host$request_uri;
+          }
+
+          server {
+              listen 443 ssl;
+              server_name war.pianka.io;
+
+              ssl_certificate /etc/ssl/self-signed/nginx-selfsigned.crt;
+              ssl_certificate_key /etc/ssl/self-signed/nginx-selfsigned.key;
+              ssl_dhparam /etc/ssl/self-signed/dhparam.pem;
+
+              location / {
+                  proxy_pass http://127.0.0.1:64808;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection "Upgrade";
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              }
+          }
+
+    - name: Ensure Nginx is enabled and started
+      systemd:
+        name: nginx
+        enabled: yes
+        state: restarted
+
+    - name: Create Certbot First-Boot Script
+      copy:
+        dest: /usr/local/bin/setup-certbot.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          echo "Waiting for domain war.pianka.io to point to this server..."
+          
+          for i in {1..30}; do
+              PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+              DOMAIN_IP=$(dig +short war.pianka.io | tail -n1)
+          
+              if [[ "$DOMAIN_IP" == "$PUBLIC_IP" ]]; then
+                  echo "Domain is correctly pointed. Requesting SSL certificate..."
+                  certbot --nginx -d war.pianka.io --non-interactive --agree-tos -m rick@pianka.io
+          
+                  if [ -f "/etc/letsencrypt/live/war.pianka.io/fullchain.pem" ]; then
+                      echo "SSL Certificate obtained. Restarting Nginx..."
+                      systemctl restart nginx
+                  fi
+                  exit 0
+              fi
+          
+              echo "Domain not resolved yet. Retrying in 60 seconds..."
+              sleep 60
+          done
+
+          echo "ERROR: Domain war.pianka.io did not resolve in 30 minutes."
+          exit 1
+
+    - name: Create Systemd Service for Certbot Setup
+      copy:
+        dest: /etc/systemd/system/certbot-setup.service
+        content: |
+          [Unit]
+          Description=Setup Certbot on First Boot
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart=/usr/local/bin/setup-certbot.sh
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Enable and Start Certbot Setup Service
+      systemd:
+        name: certbot-setup
+        enabled: yes
+        state: started
