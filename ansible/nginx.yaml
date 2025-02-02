@@ -45,9 +45,11 @@
           server {
               listen 80;
               server_name war.pianka.io;
+
               location /.well-known/acme-challenge/ {
                   root /var/www/html;
               }
+
               return 301 https://$host$request_uri;
           }
 
@@ -76,29 +78,31 @@
         enabled: yes
         state: restarted
 
-    - name: Create Certbot First-Boot Script
+    - name: Create First-Boot Certbot Script
       copy:
         dest: /usr/local/bin/setup-certbot.sh
         mode: '0755'
         content: |
           #!/bin/bash
-          echo "Waiting for domain war.pianka.io to point to this server..."
-          
+          echo "Checking if war.pianka.io is pointing to this server..."
+
           for i in {1..30}; do
               PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
               DOMAIN_IP=$(dig +short war.pianka.io | tail -n1)
-          
+
               if [[ "$DOMAIN_IP" == "$PUBLIC_IP" ]]; then
                   echo "Domain is correctly pointed. Requesting SSL certificate..."
-                  certbot --nginx -d war.pianka.io --non-interactive --agree-tos -m rick@pianka.io
-          
+                  certbot --nginx -d war.pianka.io --non-interactive --agree-tos -m rick@pianka.io --redirect
+
                   if [ -f "/etc/letsencrypt/live/war.pianka.io/fullchain.pem" ]; then
-                      echo "SSL Certificate obtained. Restarting Nginx..."
+                      echo "SSL Certificate obtained. Updating Nginx..."
+                      sed -i 's|/etc/ssl/self-signed/nginx-selfsigned.crt|/etc/letsencrypt/live/war.pianka.io/fullchain.pem|g' /etc/nginx/conf.d/war.pianka.io.conf
+                      sed -i 's|/etc/ssl/self-signed/nginx-selfsigned.key|/etc/letsencrypt/live/war.pianka.io/privkey.pem|g' /etc/nginx/conf.d/war.pianka.io.conf
                       systemctl restart nginx
                   fi
                   exit 0
               fi
-          
+
               echo "Domain not resolved yet. Retrying in 60 seconds..."
               sleep 60
           done
@@ -106,7 +110,7 @@
           echo "ERROR: Domain war.pianka.io did not resolve in 30 minutes."
           exit 1
 
-    - name: Create Systemd Service for Certbot Setup
+    - name: Create Systemd Service for First-Boot Certbot
       copy:
         dest: /etc/systemd/system/certbot-setup.service
         content: |
@@ -115,15 +119,25 @@
           After=network.target
 
           [Service]
-          Type=simple
+          Type=oneshot
           ExecStart=/usr/local/bin/setup-certbot.sh
-          Restart=on-failure
+          RemainAfterExit=yes
+          StandardOutput=journal
+          StandardError=journal
 
           [Install]
           WantedBy=multi-user.target
 
-    - name: Enable and Start Certbot Setup Service
+    - name: Enable but Do Not Start Certbot Setup Service (Runs Only on First Boot)
       systemd:
         name: certbot-setup
         enabled: yes
-        state: started
+        state: stopped
+
+    - name: Set up Certbot Auto-Renewal Cron Job
+      cron:
+        name: "Certbot Auto Renewal"
+        job: "certbot renew --quiet && systemctl restart nginx"
+        minute: "0"
+        hour: "3"
+        user: root
