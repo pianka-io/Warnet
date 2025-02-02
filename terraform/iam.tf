@@ -81,6 +81,13 @@ resource "aws_iam_policy" "orchestrator" {
         ],
         Resource = "arn:aws:secretsmanager:*:*:secret:locationiq_api_key_ugh*"
       },
+      {
+        Effect = "Allow",
+        Action = [
+          "iam:PassRole"
+        ],
+        Resource = aws_iam_role.certbot_ec2_role.arn
+      },
     ]
   })
 }
@@ -89,3 +96,80 @@ resource "aws_iam_role_policy_attachment" "orchestrator" {
   role       = aws_iam_role.orchestrator.name
   policy_arn = aws_iam_policy.orchestrator.arn
 }
+
+resource "aws_iam_policy" "route53_certbot" {
+  name        = "Route53CertbotPolicy"
+  description = "Allows Certbot to modify DNS records for Let's Encrypt validation"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:ListHostedZones"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:ChangeResourceRecordSets"
+        ]
+        Resource = "arn:aws:route53:::hostedzone/${aws_route53_zone.war_pianka_io.zone_id}"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:GetChange"
+        ]
+        Resource = "arn:aws:route53:::change/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:ListHostedZones"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:ChangeResourceRecordSets",
+          "route53:ListHostedZones",
+          "route53:GetChange"
+        ]
+        Resource = "arn:aws:route53:::hostedzone/${aws_route53_zone.war_pianka_io.zone_id}"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "certbot_ec2_role" {
+  name = "certbot-ec2-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy_attachment" "route53_certbot_attach" {
+  name       = "route53-certbot-attach"
+  roles      = [aws_iam_role.certbot_ec2_role.name]
+  policy_arn = aws_iam_policy.route53_certbot.arn
+}
+
+resource "aws_iam_instance_profile" "certbot_instance_profile" {
+  name = "certbot-instance-profile"
+  role = aws_iam_role.certbot_ec2_role.name
+}
+

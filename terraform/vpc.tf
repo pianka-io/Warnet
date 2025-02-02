@@ -1,6 +1,7 @@
 /* NORAM */
 module "virginia_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "us-east-1"
   vpc_cidr    = "10.0.0.0/16"
   subnet_cidr = "10.0.1.0/24"
@@ -21,6 +22,7 @@ module "virginia_vpc" {
 
 module "california_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "us-west-1"
   vpc_cidr    = "10.1.0.0/16"
   subnet_cidr = "10.1.1.0/24"
@@ -41,6 +43,7 @@ module "california_vpc" {
 
 module "mexico_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "mx-central-1"
   vpc_cidr    = "10.2.0.0/16"
   subnet_cidr = "10.2.1.0/24"
@@ -61,6 +64,7 @@ module "mexico_vpc" {
 
 module "oregon_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "us-west-2"
   vpc_cidr    = "10.3.0.0/16"
   subnet_cidr = "10.3.1.0/24"
@@ -81,6 +85,7 @@ module "oregon_vpc" {
 
 module "montreal_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "ca-central-1"
   vpc_cidr    = "10.4.0.0/16"
   subnet_cidr = "10.4.1.0/24"
@@ -101,6 +106,7 @@ module "montreal_vpc" {
 
 module "calgary_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "ca-west-1"
   vpc_cidr    = "10.5.0.0/16"
   subnet_cidr = "10.5.1.0/24"
@@ -122,6 +128,7 @@ module "calgary_vpc" {
 /* LATAM */
 module "sao_paulo_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "sa-east-1"
   vpc_cidr    = "10.6.0.0/16"
   subnet_cidr = "10.6.1.0/24"
@@ -144,6 +151,7 @@ module "sao_paulo_vpc" {
 // europe
 module "frankfurt_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "eu-central-1"
   vpc_cidr    = "10.7.0.0/16"
   subnet_cidr = "10.7.1.0/24"
@@ -164,6 +172,7 @@ module "frankfurt_vpc" {
 
 module "ireland_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "eu-west-1"
   vpc_cidr    = "10.8.0.0/16"
   subnet_cidr = "10.8.1.0/24"
@@ -184,6 +193,7 @@ module "ireland_vpc" {
 
 module "london_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "eu-west-2"
   vpc_cidr    = "10.9.0.0/16"
   subnet_cidr = "10.9.1.0/24"
@@ -204,6 +214,7 @@ module "london_vpc" {
 
 module "milan_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "eu-south-1"
   vpc_cidr    = "10.10.0.0/16"
   subnet_cidr = "10.10.1.0/24"
@@ -224,6 +235,7 @@ module "milan_vpc" {
 
 module "paris_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "eu-west-3"
   vpc_cidr    = "10.11.0.0/16"
   subnet_cidr = "10.11.1.0/24"
@@ -244,6 +256,7 @@ module "paris_vpc" {
 
 module "spain_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "eu-south-2"
   vpc_cidr    = "10.12.0.0/16"
   subnet_cidr = "10.12.1.0/24"
@@ -264,6 +277,7 @@ module "spain_vpc" {
 
 module "stockholm_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "eu-north-1"
   vpc_cidr    = "10.13.0.0/16"
   subnet_cidr = "10.13.1.0/24"
@@ -284,6 +298,7 @@ module "stockholm_vpc" {
 
 module "zurich_vpc" {
   source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
   region      = "eu-central-2"
   vpc_cidr    = "10.14.0.0/16"
   subnet_cidr = "10.14.1.0/24"
@@ -299,5 +314,90 @@ module "zurich_vpc" {
 
   providers = {
     aws = aws.zurich
+  }
+}
+
+// middle east, africa, israel
+module "bahrain_vpc" {
+  source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
+  region      = "me-south-1"
+  vpc_cidr    = "10.15.0.0/16"
+  subnet_cidr = "10.15.1.0/24"
+  vpc_name    = "bahrain"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-0b7ef9558bb39cd9b"
+    }
+  }
+
+  providers = {
+    aws = aws.bahrain
+  }
+}
+
+module "uae_vpc" {
+  source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
+  region      = "me-central-1"
+  vpc_cidr    = "10.16.0.0/16"
+  subnet_cidr = "10.16.1.0/24"
+  vpc_name    = "uae"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-06dcafebb7a586fa0"
+    }
+  }
+
+  providers = {
+    aws = aws.uae
+  }
+}
+
+module "tel_aviv_vpc" {
+  source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
+  region      = "il-central-1"
+  vpc_cidr    = "10.17.0.0/16"
+  subnet_cidr = "10.17.1.0/24"
+  vpc_name    = "tel_aviv"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-0e29f2b1d53fa2919"
+    }
+  }
+
+  providers = {
+    aws = aws.tel_aviv
+  }
+}
+
+module "cape_town_vpc" {
+  source      = "./vpc"
+  hosted_zone_id = aws_route53_zone.war_pianka_io.zone_id
+  region      = "af-south-1"
+  vpc_cidr    = "10.18.0.0/16"
+  subnet_cidr = "10.18.1.0/24"
+  vpc_name    = "cape_town"
+  db_cidr     = "172.31.0.0/16"
+
+  peer_routes = {
+    ohio = {
+      destination_cidr_block    = "172.31.0.0/16"
+      vpc_peering_connection_id = "pcx-0527fe12eb6d51ecb"
+    }
+  }
+
+  providers = {
+    aws = aws.cape_town
   }
 }

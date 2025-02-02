@@ -84,3 +84,23 @@ provider "aws" {
   alias = "zurich"
   region = "eu-central-2"
 }
+
+provider "aws" {
+  alias = "bahrain"
+  region = "me-south-1"
+}
+
+provider "aws" {
+  alias = "uae"
+  region = "me-central-1"
+}
+
+provider "aws" {
+  alias = "tel_aviv"
+  region = "il-central-1"
+}
+
+provider "aws" {
+  alias = "cape_town"
+  region = "af-south-1"
+}

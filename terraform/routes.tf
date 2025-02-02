@@ -87,3 +87,27 @@ resource "aws_route" "peer_connection_to_zurich" {
   destination_cidr_block    = "10.14.0.0/16"          # Zurich
   vpc_peering_connection_id = "pcx-05b75f0ee829cea50" # Zurich
 }
+
+resource "aws_route" "peer_connection_to_bahrain" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.15.0.0/16"          # Zurich
+  vpc_peering_connection_id = "pcx-0b7ef9558bb39cd9b" # Zurich
+}
+
+resource "aws_route" "peer_connection_to_uae" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.16.0.0/16"          # Zurich
+  vpc_peering_connection_id = "pcx-06dcafebb7a586fa0" # Zurich
+}
+
+resource "aws_route" "peer_connection_to_tel_aviv" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.17.0.0/16"          # Zurich
+  vpc_peering_connection_id = "pcx-0e29f2b1d53fa2919" # Zurich
+}
+
+resource "aws_route" "peer_connection_to_cape_town" {
+  route_table_id            = "rtb-0b5cd8ca03abaea76" # Ohio
+  destination_cidr_block    = "10.18.0.0/16"          # Zurich
+  vpc_peering_connection_id = "pcx-0527fe12eb6d51ecb" # Zurich
+}

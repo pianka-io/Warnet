@@ -1,15 +1,17 @@
-- name: Setup Nginx with SSL and WebSockets Proxy (Packer-Compatible)
+- name: Setup Nginx with SSL (for Packer)
   hosts: all
   become: true
   tasks:
-    - name: Install Required Packages (Nginx, Certbot, OpenSSL, Cronie)
+    - name: Install Required Packages
       yum:
         name:
           - nginx
           - certbot
-          - certbot-nginx
+          - python3-certbot-dns-route53
           - openssl
           - cronie
+          - awscli
+          - jq
         state: present
 
     - name: Ensure Cron Service is Enabled and Running
@@ -33,7 +35,7 @@
       args:
         creates: /etc/ssl/self-signed/nginx-selfsigned.crt
 
-    - name: Create a dummy Diffie-Hellman group
+    - name: Create a Diffie-Hellman group
       command: openssl dhparam -out /etc/ssl/self-signed/dhparam.pem 2048
       args:
         creates: /etc/ssl/self-signed/dhparam.pem
@@ -45,11 +47,6 @@
           server {
               listen 80;
               server_name war.pianka.io;
-
-              location /.well-known/acme-challenge/ {
-                  root /var/www/html;
-              }
-
               return 301 https://$host$request_uri;
           }
 
@@ -78,66 +75,33 @@
         enabled: yes
         state: restarted
 
-    - name: Create First-Boot Certbot Script
-      copy:
-        dest: /usr/local/bin/setup-certbot.sh
-        mode: '0755'
-        content: |
-          #!/bin/bash
-          echo "Checking if war.pianka.io is pointing to this server..."
+    - name: Run Certbot for DNS Validation (During Packer Build)
+      command: >
+        certbot certonly --dns-route53 
+        --dns-route53-propagation-seconds 30 
+        -d war.pianka.io 
+        --non-interactive --agree-tos 
+        -m rick@pianka.io --debug
+      register: certbot_result
+      ignore_errors: yes
 
-          for i in {1..30}; do
-              PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-              DOMAIN_IP=$(dig +short war.pianka.io | tail -n1)
+    - name: Fail if Certbot failed to generate a certificate
+      fail:
+        msg: "Certbot failed. Check /var/log/letsencrypt/letsencrypt.log."
+      when: certbot_result.rc != 0
 
-              if [[ "$DOMAIN_IP" == "$PUBLIC_IP" ]]; then
-                  echo "Domain is correctly pointed. Requesting SSL certificate..."
-                  certbot --nginx -d war.pianka.io --non-interactive --agree-tos -m rick@pianka.io --redirect
+    - name: Update Nginx SSL Configuration with Certbot Certificates
+      replace:
+        path: /etc/nginx/conf.d/war.pianka.io.conf
+        regexp: "/etc/ssl/self-signed/nginx-selfsigned.(crt|key)"
+        replace: "/etc/letsencrypt/live/war.pianka.io/\\1"
 
-                  if [ -f "/etc/letsencrypt/live/war.pianka.io/fullchain.pem" ]; then
-                      echo "SSL Certificate obtained. Updating Nginx..."
-                      sed -i 's|/etc/ssl/self-signed/nginx-selfsigned.crt|/etc/letsencrypt/live/war.pianka.io/fullchain.pem|g' /etc/nginx/conf.d/war.pianka.io.conf
-                      sed -i 's|/etc/ssl/self-signed/nginx-selfsigned.key|/etc/letsencrypt/live/war.pianka.io/privkey.pem|g' /etc/nginx/conf.d/war.pianka.io.conf
-                      systemctl restart nginx
-                  fi
-                  exit 0
-              fi
+    - name: Validate Nginx configuration
+      command: nginx -t
+      register: nginx_test
+      failed_when: nginx_test.rc != 0
 
-              echo "Domain not resolved yet. Retrying in 60 seconds..."
-              sleep 60
-          done
-
-          echo "ERROR: Domain war.pianka.io did not resolve in 30 minutes."
-          exit 1
-
-    - name: Create Systemd Service for First-Boot Certbot
-      copy:
-        dest: /etc/systemd/system/certbot-setup.service
-        content: |
-          [Unit]
-          Description=Setup Certbot on First Boot
-          After=network.target
-
-          [Service]
-          Type=oneshot
-          ExecStart=/usr/local/bin/setup-certbot.sh
-          RemainAfterExit=yes
-          StandardOutput=journal
-          StandardError=journal
-
-          [Install]
-          WantedBy=multi-user.target
-
-    - name: Enable but Do Not Start Certbot Setup Service (Runs Only on First Boot)
+    - name: Restart Nginx to Apply SSL
       systemd:
-        name: certbot-setup
-        enabled: yes
-        state: stopped
-
-    - name: Set up Certbot Auto-Renewal Cron Job
-      cron:
-        name: "Certbot Auto Renewal"
-        job: "certbot renew --quiet && systemctl restart nginx"
-        minute: "0"
-        hour: "3"
-        user: root
+        name: nginx
+        state: restarted

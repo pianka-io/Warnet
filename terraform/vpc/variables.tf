@@ -31,3 +31,8 @@ variable "peer_routes" {
   }))
   default = {}
 }
+
+variable "hosted_zone_id" {
+  description = "Hosted zone ID for certbot validation"
+  type        = string
+}

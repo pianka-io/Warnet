@@ -29,6 +29,10 @@ REGION_NAMES = {
     "eu-south-2": "Aragón, Spain (EMEA)",
     "eu-north-1": "Stockholm, Sweden (EMEA)",
     "eu-central-2": "Zürich, Switzerland (EMEA)",
+    "me-south-1": "Manama, Bahrain (EMEA)",
+    "me-central-1": "United Arab Emirates (EMEA)",
+    "il-central-1": "Tel Aviv, Israel (EMEA)",
+    "af-south-1": "Cape Town, South Africa (EMEA)"
 }
 DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
 DNS_RECORD_NAME = "war.pianka.io"
@@ -52,7 +56,11 @@ def lambda_handler(event, context):
             "eu-south-1",
             "eu-south-2",
             "eu-north-1",
-            "eu-central-2"
+            "eu-central-2",
+            "me-south-1",
+            "me-central-1",
+            "il-central-1",
+            "af-south-1"
         ] else "t2.xlarge"
 
         ec2_client = boto3.client("ec2", region_name=random_region)
@@ -69,6 +77,9 @@ def lambda_handler(event, context):
             KeyName="warnet",
             MaxCount=1,
             MinCount=1,
+            IamInstanceProfile={
+                "Name": "certbot-instance-profile"
+            },
             NetworkInterfaces=[
                 {
                     "AssociatePublicIpAddress": True,

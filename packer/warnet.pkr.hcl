@@ -62,6 +62,10 @@ source "amazon-ebs" "baseline" {
     "eu-south-2",
     "eu-north-1",
     "eu-central-2",
+    "me-south-1",
+    "me-central-1",
+    "il-central-1",
+    "af-south-1"
   ]
 
   force_deregister            = true
@@ -69,6 +73,7 @@ source "amazon-ebs" "baseline" {
 
   ami_name                    = "${var.ami_name}"
   instance_type               = "t2.xlarge"
+  iam_instance_profile        = "certbot-instance-profile"
   source_ami                  = "ami-0eb070c40e6a142a3"
   ssh_username                = "ec2-user"
   encrypt_boot                = true
@@ -78,17 +83,17 @@ build {
   name    = "baseline"
   sources = ["source.amazon-ebs.baseline"]
 
+#  provisioner "ansible" {
+#    playbook_file   = "../ansible/nginx.yaml"
+#    use_proxy       = false
+#
+#    extra_arguments = [
+#      "--extra-vars=${var.environment}"
+#    ]
+#  }
+
   provisioner "ansible" {
     playbook_file   = "../ansible/warnet.yaml"
-    use_proxy       = false
-
-    extra_arguments = [
-      "--extra-vars=${var.environment}"
-    ]
-  }
-
-  provisioner "ansible" {
-    playbook_file   = "../ansible/nginx.yaml"
     use_proxy       = false
 
     extra_arguments = [
