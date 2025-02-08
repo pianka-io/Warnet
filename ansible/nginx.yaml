@@ -6,8 +6,6 @@
       yum:
         name:
           - nginx
-          - certbot
-          - python3-certbot-dns-route53
           - openssl
           - cronie
           - awscli
@@ -22,23 +20,30 @@
 
     - name: Ensure required directories exist
       file:
-        path: /etc/ssl/self-signed
+        path: /etc/letsencrypt/live/war.pianka.io
         state: directory
         mode: '0755'
 
-    - name: Generate a self-signed SSL certificate
-      command: >
-        openssl req -x509 -nodes -days 365 -newkey rsa:2048
-        -keyout /etc/ssl/self-signed/nginx-selfsigned.key
-        -out /etc/ssl/self-signed/nginx-selfsigned.crt
-        -subj "/CN=war.pianka.io"
-      args:
-        creates: /etc/ssl/self-signed/nginx-selfsigned.crt
+    - name: Upload SSL Certificate (fullchain.pem)
+      copy:
+        src: resources/fullchain.pem
+        dest: /etc/letsencrypt/live/war.pianka.io/fullchain.pem
+        owner: root
+        group: root
+        mode: '0644'
 
-    - name: Create a Diffie-Hellman group
-      command: openssl dhparam -out /etc/ssl/self-signed/dhparam.pem 2048
+    - name: Upload SSL Private Key (privkey.pem)
+      copy:
+        src: resources/privkey.pem
+        dest: /etc/letsencrypt/live/war.pianka.io/privkey.pem
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Create Diffie-Hellman group
+      command: openssl dhparam -out /etc/ssl/dhparam.pem 2048
       args:
-        creates: /etc/ssl/self-signed/dhparam.pem
+        creates: /etc/ssl/dhparam.pem
 
     - name: Create Nginx configuration for war.pianka.io
       copy:
@@ -54,9 +59,9 @@
               listen 443 ssl;
               server_name war.pianka.io;
 
-              ssl_certificate /etc/ssl/self-signed/nginx-selfsigned.crt;
-              ssl_certificate_key /etc/ssl/self-signed/nginx-selfsigned.key;
-              ssl_dhparam /etc/ssl/self-signed/dhparam.pem;
+              ssl_certificate /etc/letsencrypt/live/war.pianka.io/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/war.pianka.io/privkey.pem;
+              ssl_dhparam /etc/ssl/dhparam.pem;
 
               location / {
                   proxy_pass http://127.0.0.1:64808;
@@ -74,27 +79,6 @@
         name: nginx
         enabled: yes
         state: restarted
-
-    - name: Run Certbot for DNS Validation (During Packer Build)
-      command: >
-        certbot certonly --dns-route53 
-        --dns-route53-propagation-seconds 30 
-        -d war.pianka.io 
-        --non-interactive --agree-tos 
-        -m rick@pianka.io --debug
-      register: certbot_result
-      ignore_errors: yes
-
-    - name: Fail if Certbot failed to generate a certificate
-      fail:
-        msg: "Certbot failed. Check /var/log/letsencrypt/letsencrypt.log."
-      when: certbot_result.rc != 0
-
-    - name: Update Nginx SSL Configuration with Certbot Certificates
-      replace:
-        path: /etc/nginx/conf.d/war.pianka.io.conf
-        regexp: "/etc/ssl/self-signed/nginx-selfsigned.(crt|key)"
-        replace: "/etc/letsencrypt/live/war.pianka.io/\\1"
 
     - name: Validate Nginx configuration
       command: nginx -t

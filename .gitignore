@@ -1,5 +1,6 @@
 **/.DS_Store
 **/venv
+ansible/resources/privkey.pem
 packer/packer-manifest.json
 terraform/.terraform/providers
 terraform/.terraform/modules

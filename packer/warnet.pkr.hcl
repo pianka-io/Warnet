@@ -83,14 +83,14 @@ build {
   name    = "baseline"
   sources = ["source.amazon-ebs.baseline"]
 
-#  provisioner "ansible" {
-#    playbook_file   = "../ansible/nginx.yaml"
-#    use_proxy       = false
-#
-#    extra_arguments = [
-#      "--extra-vars=${var.environment}"
-#    ]
-#  }
+  provisioner "ansible" {
+    playbook_file   = "../ansible/nginx.yaml"
+    use_proxy       = false
+
+    extra_arguments = [
+      "--extra-vars=${var.environment}"
+    ]
+  }
 
   provisioner "ansible" {
     playbook_file   = "../ansible/warnet.yaml"

@@ -3,6 +3,11 @@ resource "aws_key_pair" "warnet" {
   public_key = file("warnet.pub")
 }
 
+resource "aws_key_pair" "filip" {
+  key_name   = "filip"
+  public_key = file("filip.pub")
+}
+
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -106,6 +111,14 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_ssh_2" {
   ip_protocol       = "tcp"
   to_port           = 22
 }
+
+#resource "aws_vpc_security_group_ingress_rule" "ec2_ssh_3" {
+#  security_group_id = aws_security_group.ec2.id
+#  cidr_ipv4         = "157.131.0.0/16"
+#  from_port         = 22
+#  ip_protocol       = "tcp"
+#  to_port           = 22
+#}
 
 resource "aws_vpc_security_group_ingress_rule" "ec2_bncs" {
   security_group_id = aws_security_group.ec2.id

@@ -44,8 +44,7 @@ def lambda_handler(event, context):
 
     try:
         last_used_region = get_last_used_region()
-        available_regions = [r for r in REGION_NAMES.keys() if r != last_used_region]
-        random_region = random.choice(available_regions)
+        random_region = choose_weighted_region(exclude_region=last_used_region)
         set_last_used_region(random_region)
 
         ami_id = get_latest_warnet_ami(random_region)
@@ -74,6 +73,7 @@ def lambda_handler(event, context):
         new_instance = ec2_client.run_instances(
             ImageId=ami_id,
             InstanceType=instance_type,
+            # KeyName="filip",
             KeyName="warnet",
             MaxCount=1,
             MinCount=1,
@@ -178,6 +178,24 @@ async def send_message(message_content, image_url):
             await client.close()
 
     await client.start(get_secret("discord_token_ugh"))
+
+
+def choose_weighted_region(exclude_region=None):
+    weighted_regions = {
+        "us-east-2": 3, "us-east-1": 3, "us-west-1": 3, "us-west-2": 3, "mx-central-1": 3, "ca-central-1": 3, "ca-west-1": 3,
+        "sa-east-1": 2, "eu-central-1": 2, "eu-west-1": 2, "eu-west-2": 2, "eu-south-1": 2, "eu-west-3": 2, "eu-south-2": 2,
+        "eu-north-1": 2, "eu-central-2": 2,
+        "me-south-1": 1, "me-central-1": 1, "il-central-1": 1, "af-south-1": 1,
+        # Placeholder for future expansion
+        "ap-southeast-1": 0.5, "ap-northeast-1": 0.5
+    }
+
+    # Exclude last used region
+    if exclude_region and exclude_region in weighted_regions:
+        del weighted_regions[exclude_region]
+
+    regions, weights = zip(*weighted_regions.items())
+    return random.choices(regions, weights=weights, k=1)[0]
 
 
 def get_secret(secret_name):
