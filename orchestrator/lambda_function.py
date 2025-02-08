@@ -187,7 +187,7 @@ def choose_weighted_region(exclude_region=None):
         "eu-north-1": 2, "eu-central-2": 2,
         "me-south-1": 1, "me-central-1": 1, "il-central-1": 1, "af-south-1": 1,
         # Placeholder for future expansion
-        "ap-southeast-1": 0.5, "ap-northeast-1": 0.5
+        # "ap-southeast-1": 0.5, "ap-northeast-1": 0.5
     }
 
     # Exclude last used region
