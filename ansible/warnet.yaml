@@ -301,8 +301,8 @@
 
           [Service]
           WorkingDirectory=/opt/WarCast
-          TimeoutStartSec=200
-          ExecStartPre=/bin/sleep 180
+          TimeoutStartSec=600
+          ExecStartPre=/bin/sleep 420
           ExecStart=/opt/WarCast/bin/WarCast
           Restart=always
           User=ec2-user

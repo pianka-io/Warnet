@@ -61,6 +61,7 @@ def lambda_handler(event, context):
             "il-central-1",
             "af-south-1"
         ] else "t2.xlarge"
+        logger.info(f"Choosing {random_region} for the next region.")
 
         ec2_client = boto3.client("ec2", region_name=random_region)
         security_groups = ec2_client.describe_security_groups(
@@ -92,6 +93,7 @@ def lambda_handler(event, context):
         new_instance_id = new_instance["Instances"][0]["InstanceId"]
 
         wait_for_instance_running(ec2_client, new_instance_id)
+        time.sleep(300)
 
         new_instance_description = ec2_client.describe_instances(InstanceIds=[new_instance_id])
         new_instance_ip = new_instance_description["Reservations"][0]["Instances"][0]["PublicIpAddress"]
