@@ -13,45 +13,125 @@
           - boto3
           - botocore
 
-- name: Upload
+- name: Clone and Build Init6
   hosts: all
   become: true
-
   tasks:
-    - name: Upload Init6
-      copy:
-        src: resources/init6.tar.gz
-        dest: init6.tar.gz
+    - name: Install Git, Maven, and Amazon Corretto 8
+      yum:
+        name:
+          - git
+          - maven
+          - java-1.8.0-amazon-corretto-devel
+        state: present
 
-    - name: Upload Service
+    - name: Find Installed Java Path
+      shell: readlink -f $(which java)
+      register: java_path
+
+    - name: Set Java 8 as the Default
+      alternatives:
+        name: java
+        path: "{{ java_path.stdout }}"
+
+    - name: Clone Init6 Repository
+      git:
+        repo: https://github.com/pianka-io/init6.git
+        dest: /tmp/init6
+        version: master
+
+    - name: Run build script
+      shell: |
+        cd /tmp/init6
+        chmod +x build.sh
+        ./build.sh > /tmp/init6_build.log 2>&1
+      args:
+        executable: /bin/bash
+      register: build_output
+      ignore_errors: no
+
+    - name: Print build output
+      shell: cat /tmp/init6_build.log
+      register: build_log_output
+      ignore_errors: yes
+
+    - name: Debug build log
+      debug:
+        var: build_log_output.stdout_lines
+
+    - name: Debug build directory contents
+      shell: |
+        ls -lah /tmp/init6
+        ls -lah /tmp/init6/target
+      register: build_debug
+      ignore_errors: yes
+
+    - name: Print debug info
+      debug:
+        var: build_debug.stdout_lines
+
+    - name: Verify Init6 archive exists
+      stat:
+        path: /tmp/init6/target/init6.tar.gz
+      register: archive_stat
+
+    - name: Fail if Init6 archive is missing
+      fail:
+        msg: "init6.tar.gz was not created by the build process."
+      when: not archive_stat.stat.exists
+
+    - name: Move built Init6 archive
+      shell: |
+        mv /tmp/init6/target/init6.tar.gz /tmp/init6.tar.gz
+      register: move_result
+      ignore_errors: yes
+
+    - name: Print move result
+      debug:
+        var: move_result
+
+- name: Configure Init6
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Ensure Init6 service file is uploaded
       copy:
         src: resources/init6.service
-        dest: init6.service
+        dest: /etc/systemd/system/init6.service
 
-    - name: Upload Config
+    - name: Ensure Init6 directory exists
+      file:
+        path: /opt/init6
+        state: directory
+        mode: '0755'
+
+    - name: Extract Init6 Archive and Move Contents
+      shell: |
+        tar -xvzf /tmp/init6.tar.gz -C /opt/init6
+        mv /opt/init6/init6/* /opt/init6/
+        rmdir /opt/init6/init6
+        rm /tmp/init6.tar.gz
+
+    - name: Ensure Init6 config file is uploaded
       copy:
         src: resources/init6.conf
-        dest: init6.conf
+        dest: /opt/init6/init6.conf
 
-- name: Configure
-  hosts: all
-  become: true
-
-  tasks:
-    - name: Install Java
+    - name: Verify Init6 extraction
       shell: |
-        yum install -y java-11-amazon-corretto-headless
+        ls -lah /opt/init6
+      register: extract_debug
+      ignore_errors: yes
 
-    - name: Relocate Files
-      shell: |
-        tar -xvzf init6.tar.gz
-        rm init6.tar.gz
-        mv init6 /opt
-        mv init6.service /etc/systemd/system/init6.service
-        mv init6.conf /opt/init6
-        sudo chmod 0777 /opt/init6
+    - name: Print extraction debug info
+      debug:
+        var: extract_debug.stdout_lines
 
-    - name: Relocate Files
+    - name: Reload systemd daemon
+      shell: systemctl daemon-reload
+
+    - name: Enable and Start Init6 Service
       shell: |
         systemctl enable init6.service
         systemctl start init6.service
@@ -196,12 +276,16 @@
 
     - name: Set execute permissions for bin folder
       file:
-        path: /opt/WarCast/bin
+        path: /opt/WarCast
         state: directory
-        mode: '0755'
+        mode: '0777'
         recurse: yes
         owner: ec2-user
         group: ec2-user
+
+    - name: Open permissions
+      shell: |
+        chmod -R 0777 /opt/init6
 
 - name: Configure WarCast as Systemd Service
   hosts: all
@@ -217,7 +301,8 @@
 
           [Service]
           WorkingDirectory=/opt/WarCast
-          ExecStartPre=/bin/sleep 60
+          TimeoutStartSec=200
+          ExecStartPre=/bin/sleep 180
           ExecStart=/opt/WarCast/bin/WarCast
           Restart=always
           User=ec2-user

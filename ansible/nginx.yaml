@@ -1,4 +1,4 @@
-- name: Setup Nginx with SSL (for Packer)
+- name: Setup Nginx with SSL
   hosts: all
   become: true
   tasks:

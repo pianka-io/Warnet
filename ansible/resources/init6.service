@@ -8,7 +8,7 @@ Type=simple
 User=ec2-user
 WorkingDirectory=/opt/init6
 Environment=wait_time=604800
-ExecStart=/usr/bin/java \
+ExecStart=/usr/lib/jvm/java-1.8.0/bin/java \
   -XX:+HeapDumpOnOutOfMemoryError \
   -XX:+DisableExplicitGC \
   -Dconfig=init6.conf \

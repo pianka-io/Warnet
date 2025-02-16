@@ -8441,6 +8441,18 @@
       args:
         executable: /bin/bash
 
+#    - name: Block high volume IP addresses
+#      shell: |
+#        nft add rule inet filter input ip saddr 161.156.66.98 drop
+#        nft add rule inet filter input ip saddr 71.190.239.134 drop
+#        nft add rule inet filter input ip saddr 150.238.93.41 drop
+#        nft add rule inet filter input ip saddr 169.45.104.10 drop
+#        nft add rule inet filter input ip saddr 45.32.95.64 drop
+#        nft add rule inet filter input ip saddr 45.32.148.194 drop
+#        nft add rule inet filter input ip saddr 95.179.138.127 drop
+#        nft add rule inet filter input ip saddr 107.191.50.229 drop
+#        nft add rule inet filter input ip saddr 208.85.23.15 drop
+
     - name: Save nftables rules to persist after reboot
       shell: |
         nft list ruleset > /etc/sysconfig/nftables.conf
