@@ -37,7 +37,9 @@ resource "aws_iam_policy" "orchestrator" {
           "ec2:DescribeSecurityGroups",
           "ec2:CreateTags",
           "ec2:DescribeVpcs",
-          "ec2:DescribeInstanceTypeOfferings"
+          "ec2:DescribeInstanceTypeOfferings",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupIngress"
         ]
         Resource = "*"
       },

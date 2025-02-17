@@ -70,6 +70,7 @@ def lambda_handler(event, context):
         if not security_groups["SecurityGroups"]:
             raise Exception(f"Security group '{SECURITY_GROUP_NAME}' not found in region {random_region}")
         security_group_id = security_groups["SecurityGroups"][0]["GroupId"]
+        revoke_port_6112(ec2_client, security_group_id)
 
         new_instance = ec2_client.run_instances(
             ImageId=ami_id,
@@ -98,6 +99,23 @@ def lambda_handler(event, context):
         new_instance_description = ec2_client.describe_instances(InstanceIds=[new_instance_id])
         new_instance_ip = new_instance_description["Reservations"][0]["Instances"][0]["PublicIpAddress"]
 
+        for region in REGION_NAMES.keys():
+            ec2_client = boto3.client("ec2", region_name=region)
+            instances = ec2_client.describe_instances(
+                Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+            )
+            for reservation in instances["Reservations"]:
+                for instance in reservation["Instances"]:
+                    instance_id = instance["InstanceId"]
+                    if instance_id != new_instance_id:
+                        try:
+                            ec2_client.terminate_instances(InstanceIds=[instance_id])
+                        except ec2_client.exceptions.ClientError as e:
+                            if "InvalidInstanceID.NotFound" in str(e):
+                                continue
+                            else:
+                                raise
+
         route53_client.change_resource_record_sets(
             HostedZoneId=DNS_ZONE_ID,
             ChangeBatch={
@@ -115,23 +133,8 @@ def lambda_handler(event, context):
                 ],
             },
         )
-
-        for region in REGION_NAMES.keys():
-            ec2_client = boto3.client("ec2", region_name=region)
-            instances = ec2_client.describe_instances(
-                Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
-            )
-            for reservation in instances["Reservations"]:
-                for instance in reservation["Instances"]:
-                    instance_id = instance["InstanceId"]
-                    if instance_id != new_instance_id:
-                        try:
-                            ec2_client.terminate_instances(InstanceIds=[instance_id])
-                        except ec2_client.exceptions.ClientError as e:
-                            if "InvalidInstanceID.NotFound" in str(e):
-                                continue
-                            else:
-                                raise
+        time.sleep(60)
+        allow_port_6112(ec2_client, security_group_id)
 
         location = REGION_NAMES[random_region]
         lat, lon = get_location_coordinates(location)
@@ -310,3 +313,25 @@ def set_last_used_region(region):
         Type="String",
         Overwrite=True
     )
+
+
+def revoke_port_6112(ec2_client, security_group_id):
+    ec2_client.revoke_ingress(
+        GroupId=security_group_id,
+        IpProtocol="tcp",
+        FromPort=6112,
+        ToPort=6112,
+        CidrIp="0.0.0.0/0"
+    )
+    logger.info("Revoked port 6112 access.")
+
+
+def allow_port_6112(ec2_client, security_group_id):
+    ec2_client.authorize_ingress(
+        GroupId=security_group_id,
+        IpProtocol="tcp",
+        FromPort=6112,
+        ToPort=6112,
+        CidrIp="0.0.0.0/0"
+    )
+    logger.info("Restored port 6112 access.")
