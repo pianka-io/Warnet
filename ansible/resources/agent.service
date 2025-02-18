@@ -1,0 +1,15 @@
+[Unit]
+Description=Flask Agent Service
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/init6/agent.py
+WorkingDirectory=/opt/init6
+Restart=always
+User=root
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

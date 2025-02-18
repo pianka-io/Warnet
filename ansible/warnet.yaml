@@ -317,8 +317,3 @@
       systemd:
         name: warcast
         enabled: yes
-
-    - name: Start WarCast Service
-      systemd:
-        name: warcast
-        state: started

@@ -1,87 +1,40 @@
-- name: Deploy Python Agent as a Systemd Service
+- name: Install Agent Dependencies
   hosts: all
   become: true
   tasks:
-    - name: Install dependencies
-      yum:
+    - name: Install Python3 and pip
+      package:
         name:
-          - gcc
-          - gcc-c++
-          - make
-          - zlib-devel
-          - bzip2
-          - bzip2-devel
-          - readline-devel
-          - sqlite
-          - sqlite-devel
-          - openssl-devel
-          - tk-devel
-          - libffi-devel
-          - xz-devel
-          - wget
+          - python3
+          - python3-pip
         state: present
 
-    - name: Ensure Python 3.13 is installed
-      shell: |
-        PYTHON_VERSION=$(python3.13 --version 2>/dev/null || echo "missing")
-        if [ "$PYTHON_VERSION" == "missing" ]; then
-            cd /usr/src
-            wget https://www.python.org/ftp/python/3.13.0/Python-3.13.0.tar.xz
-            tar xJf Python-3.13.0.tar.xz
-            cd Python-3.13.0
-            ./configure --enable-optimizations
-            make -j$(nproc)
-            make altinstall
-        fi
-      args:
-        creates: /usr/local/bin/python3.13
-
-    - name: Ensure /opt/agent directory exists
-      file:
-        path: /opt/agent
-        state: directory
-        owner: ec2-user
-        group: ec2-user
-        mode: '0755'
-
-    - name: Upload Python agent code
-      copy:
-        src: ../agent/
-        dest: /opt/agent/
-        owner: ec2-user
-        group: ec2-user
-        mode: '0755'
-
-    - name: Create Python virtual environment
-      command: /usr/local/bin/python3.13 -m venv /opt/agent/venv
-      args:
-        creates: /opt/agent/venv
-
-    - name: Install dependencies from requirements.txt
+    - name: Install Flask
       pip:
-        requirements: /opt/agent/requirements.txt
-        virtualenv: /opt/agent/venv
-        virtualenv_command: /usr/local/bin/python3.13 -m venv
+        name:
+          - flask
 
-    - name: Create systemd service for Python agent
+- name: Deploy Agent
+  hosts: all
+  become: true
+  tasks:
+    - name: Upload Agent Script
       copy:
+        src: ../agent/agent.py
+        dest: /opt/init6/agent.py
+        mode: '0755'
+
+    - name: Upload Agent Service File
+      copy:
+        src: resources/agent.service
         dest: /etc/systemd/system/agent.service
-        content: |
-          [Unit]
-          Description=Python Agent Service
-          After=network.target
+        mode: '0644'
 
-          [Service]
-          WorkingDirectory=/opt/agent
-          ExecStart=/opt/agent/venv/bin/python /opt/agent/main.py
-          Restart=always
-          User=ec2-user
+    - name: Reload Systemd Daemon
+      shell: systemctl daemon-reload
 
-          [Install]
-          WantedBy=multi-user.target
-
-    - name: Reload systemd and enable agent service
+    - name: Enable and Start Agent Service
       systemd:
         name: agent
         enabled: yes
-        state: restarted
+        state: started

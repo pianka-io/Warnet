@@ -45,6 +45,7 @@ def lambda_handler(event, context):
     try:
         last_used_region = get_last_used_region()
         random_region = choose_weighted_region(exclude_region=last_used_region)
+        location = REGION_NAMES[random_region]
         set_last_used_region(random_region)
 
         ami_id = get_latest_warnet_ami(random_region)
@@ -94,10 +95,15 @@ def lambda_handler(event, context):
         new_instance_id = new_instance["Instances"][0]["InstanceId"]
 
         wait_for_instance_running(ec2_client, new_instance_id)
-        time.sleep(300)
+        time.sleep(120)
 
         new_instance_description = ec2_client.describe_instances(InstanceIds=[new_instance_id])
         new_instance_ip = new_instance_description["Reservations"][0]["Instances"][0]["PublicIpAddress"]
+        # internal_ip = new_instance_description["Reservations"][0]["Instances"][0]["PrivateIpAddress"]
+
+        requests.post(f"http://{new_instance_ip}:8080/update-location", json={"location": location})
+        logger.info(f"Sent location update request to agent on {new_instance_ip}")
+        time.sleep(180)
 
         for region in REGION_NAMES.keys():
             ec2_client = boto3.client("ec2", region_name=region)
@@ -134,9 +140,8 @@ def lambda_handler(event, context):
             },
         )
         time.sleep(60)
-        allow_port_6112(ec2_client, security_group_id)
+        allow_port_6112(security_group_id, random_region)
 
-        location = REGION_NAMES[random_region]
         lat, lon = get_location_coordinates(location)
         map_url = get_map_url(lat, lon)
         message = f"Server moved to **{location}** at **{new_instance_ip}**"
@@ -316,7 +321,7 @@ def set_last_used_region(region):
 
 
 def revoke_port_6112(ec2_client, security_group_id):
-    ec2_client.revoke_ingress(
+    ec2_client.revoke_security_group_ingress(
         GroupId=security_group_id,
         IpProtocol="tcp",
         FromPort=6112,
@@ -326,8 +331,9 @@ def revoke_port_6112(ec2_client, security_group_id):
     logger.info("Revoked port 6112 access.")
 
 
-def allow_port_6112(ec2_client, security_group_id):
-    ec2_client.authorize_ingress(
+def allow_port_6112(security_group_id, region):
+    regional_ec2_client = boto3.client("ec2", region_name=region)  # Ensure correct region
+    regional_ec2_client.authorize_security_group_ingress(
         GroupId=security_group_id,
         IpProtocol="tcp",
         FromPort=6112,
@@ -335,3 +341,4 @@ def allow_port_6112(ec2_client, security_group_id):
         CidrIp="0.0.0.0/0"
     )
     logger.info("Restored port 6112 access.")
+

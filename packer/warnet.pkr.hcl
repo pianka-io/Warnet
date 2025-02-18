@@ -93,6 +93,15 @@ build {
   }
 
   provisioner "ansible" {
+    playbook_file   = "../ansible/agent.yaml"
+    use_proxy       = false
+
+    extra_arguments = [
+      "--extra-vars=${var.environment}"
+    ]
+  }
+
+  provisioner "ansible" {
     playbook_file   = "../ansible/nginx.yaml"
     use_proxy       = false
 
