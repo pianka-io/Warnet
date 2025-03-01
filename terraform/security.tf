@@ -33,21 +33,21 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_agent" {
   to_port           = 8080
 }
 
-resource "aws_vpc_security_group_ingress_rule" "ec2_http" {
-  security_group_id = aws_security_group.ec2.id
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 80
-  ip_protocol       = "tcp"
-  to_port           = 80
-}
+#resource "aws_vpc_security_group_ingress_rule" "ec2_http" {
+#  security_group_id = aws_security_group.ec2.id
+#  cidr_ipv4         = "0.0.0.0/0"
+#  from_port         = 80
+#  ip_protocol       = "tcp"
+#  to_port           = 80
+#}
 
-resource "aws_vpc_security_group_ingress_rule" "ec2_https" {
-  security_group_id = aws_security_group.ec2.id
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 443
-  ip_protocol       = "tcp"
-  to_port           = 443
-}
+#resource "aws_vpc_security_group_ingress_rule" "ec2_https" {
+#  security_group_id = aws_security_group.ec2.id
+#  cidr_ipv4         = "0.0.0.0/0"
+#  from_port         = 443
+#  ip_protocol       = "tcp"
+#  to_port           = 443
+#}
 
 resource "aws_vpc_security_group_ingress_rule" "ec2_ssh_1" {
   security_group_id = aws_security_group.ec2.id
@@ -79,15 +79,19 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_bncs" {
   from_port         = 6112
   ip_protocol       = "tcp"
   to_port           = 6112
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "ec2_ws" {
-  security_group_id = aws_security_group.ec2.id
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 64808
-  ip_protocol       = "tcp"
-  to_port           = 64808
-}
+#resource "aws_vpc_security_group_ingress_rule" "ec2_ws" {
+#  security_group_id = aws_security_group.ec2.id
+#  cidr_ipv4         = "0.0.0.0/0"
+#  from_port         = 64808
+#  ip_protocol       = "tcp"
+#  to_port           = 64808
+#}
 
 resource "aws_vpc_security_group_egress_rule" "ec2_rds" {
   security_group_id            = aws_security_group.ec2.id

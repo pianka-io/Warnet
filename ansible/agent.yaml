@@ -38,3 +38,8 @@
         name: agent
         enabled: yes
         state: started
+
+    - name: Reload Systemd Daemon
+      shell: |
+        touch /var/log/agent.log
+        chmod 0777 /var/log/agent.log

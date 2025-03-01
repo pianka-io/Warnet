@@ -6,7 +6,7 @@ After=network.target
 ExecStart=/usr/bin/python3 /opt/init6/agent.py
 WorkingDirectory=/opt/init6
 Restart=always
-User=root
+User=ec2-user
 Environment=PYTHONUNBUFFERED=1
 StandardOutput=journal
 StandardError=journal

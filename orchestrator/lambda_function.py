@@ -49,7 +49,7 @@ def lambda_handler(event, context):
         set_last_used_region(random_region)
 
         ami_id = get_latest_warnet_ami(random_region)
-        instance_type = "t3.xlarge" if random_region in [
+        instance_type = "t3.large" if random_region in [
             "mx-central-1",
             "ca-west-1",
             "ca-central-1",
@@ -61,7 +61,7 @@ def lambda_handler(event, context):
             "me-central-1",
             "il-central-1",
             "af-south-1"
-        ] else "t2.xlarge"
+        ] else "t2.large"
         logger.info(f"Choosing {random_region} for the next region.")
 
         ec2_client = boto3.client("ec2", region_name=random_region)
@@ -139,6 +139,7 @@ def lambda_handler(event, context):
                 ],
             },
         )
+
         time.sleep(60)
         allow_port_6112(security_group_id, random_region)
 
@@ -147,6 +148,9 @@ def lambda_handler(event, context):
         message = f"Server moved to **{location}** at **{new_instance_ip}**"
 
         asyncio.run(send_message(message, map_url))
+
+        time.sleep(120)
+        allow_port_443(security_group_id, random_region)
 
     except Exception as e:
         logger.error(f"Error: {str(e)}")
@@ -328,11 +332,18 @@ def revoke_port_6112(ec2_client, security_group_id):
         ToPort=6112,
         CidrIp="0.0.0.0/0"
     )
-    logger.info("Revoked port 6112 access.")
+    ec2_client.revoke_security_group_ingress(
+        GroupId=security_group_id,
+        IpProtocol="tcp",
+        FromPort=443,
+        ToPort=443,
+        CidrIp="0.0.0.0/0"
+    )
+    logger.info("Revoked ports 6112 and 443 access.")
 
 
 def allow_port_6112(security_group_id, region):
-    regional_ec2_client = boto3.client("ec2", region_name=region)  # Ensure correct region
+    regional_ec2_client = boto3.client("ec2", region_name=region)
     regional_ec2_client.authorize_security_group_ingress(
         GroupId=security_group_id,
         IpProtocol="tcp",
@@ -341,4 +352,16 @@ def allow_port_6112(security_group_id, region):
         CidrIp="0.0.0.0/0"
     )
     logger.info("Restored port 6112 access.")
+
+
+def allow_port_443(security_group_id, region):
+    regional_ec2_client = boto3.client("ec2", region_name=region)
+    regional_ec2_client.authorize_security_group_ingress(
+        GroupId=security_group_id,
+        IpProtocol="tcp",
+        FromPort=443,
+        ToPort=443,
+        CidrIp="0.0.0.0/0"
+    )
+    logger.info("Restored port 443 access.")
 
