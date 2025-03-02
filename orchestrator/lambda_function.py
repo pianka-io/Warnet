@@ -101,7 +101,7 @@ def lambda_handler(event, context):
         new_instance_ip = new_instance_description["Reservations"][0]["Instances"][0]["PublicIpAddress"]
         # internal_ip = new_instance_description["Reservations"][0]["Instances"][0]["PrivateIpAddress"]
 
-        requests.post(f"http://{new_instance_ip}:8080/update-location", json={"location": location})
+        requests.post(f"http://{new_instance_ip}:8080/update-location", json={"location": location, "ip_address": new_instance_ip})
         logger.info(f"Sent location update request to agent on {new_instance_ip}")
         time.sleep(180)
 

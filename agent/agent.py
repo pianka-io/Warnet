@@ -23,6 +23,7 @@ def update_location():
         return jsonify({"error": "Missing 'location' in request"}), 400
 
     location = data["location"]
+    ip_address = data["ip_address"]
     logging.info(f"Received request to update location: {location}")
 
     try:
@@ -31,6 +32,7 @@ def update_location():
             config = file.read()
 
         updated_config = re.sub(r"<LOCATION>", location, config)
+        updated_config = re.sub(r"<IP_ADDRESS>", ip_address, updated_config)
 
         logging.info(f"Writing updated location to {CONFIG_PATH}")
         with open(CONFIG_PATH, "w") as file:

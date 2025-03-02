@@ -140,6 +140,18 @@ resource "aws_vpc_security_group_ingress_rule" "ec2_bncs" {
   }
 }
 
+resource "aws_vpc_security_group_ingress_rule" "ec2_d2rs" {
+  security_group_id = aws_security_group.ec2.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 4000
+  ip_protocol       = "tcp"
+  to_port           = 4000
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 #resource "aws_vpc_security_group_ingress_rule" "ec2_ws" {
 #  security_group_id = aws_security_group.ec2.id
 #  cidr_ipv4         = "0.0.0.0/0"
