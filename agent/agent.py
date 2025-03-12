@@ -1,7 +1,11 @@
+import threading
+import logging
 import subprocess
 import re
-import logging
+import asyncio
 from flask import Flask, request, jsonify
+
+from warnet import send_message, run_discord_bot, bot
 
 app = Flask(__name__)
 
@@ -14,6 +18,26 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     force=True
 )
+
+# Store the Discord bot event loop globally
+discord_loop = None
+
+
+@app.route('/d2_activity', methods=['POST'])
+def d2_activity():
+    data = request.get_json()
+    if not data or "message" not in data:
+        logging.error("Received request with missing 'message'")
+        return jsonify({"error": "Missing 'message' in request"}), 400
+
+    message = data["message"]
+
+    # Ensure the coroutine runs in the Discord bot's event loop
+    future = asyncio.run_coroutine_threadsafe(send_message(message), discord_loop)
+    future.result()  # Wait for completion
+
+    return jsonify({"status": "Message processing started"}), 200
+
 
 @app.route('/update-location', methods=['POST'])
 def update_location():
@@ -55,12 +79,23 @@ def update_location():
         return jsonify({"error": str(e)}), 500
 
 
-if __name__ == '__main__':
-    try:
-        logging.info("Flushing nftables ruleset on startup...")
-        subprocess.run(["sudo", "/usr/sbin/nft", "flush", "ruleset"], check=True)
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to flush nftables rules: {e.stderr}")
+def run_flask():
+    logging.info("Starting Flask server on port 8889...")
+    app.run(host='0.0.0.0', port=8889, use_reloader=False)
 
-    logging.info("Starting Flask server on port 8080...")
-    app.run(host='0.0.0.0', port=8080)
+
+if __name__ == '__main__':
+    with open(CONFIG_PATH, "r") as file:
+        config = file.read()
+
+    if "<LOCATION>" in config:
+        try:
+            subprocess.run(["sudo", "/usr/sbin/nft", "flush", "ruleset"], check=True)
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Failed to flush nftables rules: {e}")
+
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+
+    discord_loop = asyncio.get_event_loop()
+    discord_loop.run_until_complete(run_discord_bot())

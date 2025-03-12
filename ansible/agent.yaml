@@ -9,10 +9,11 @@
           - python3-pip
         state: present
 
-    - name: Install Flask
+    - name: Install Dependencies
       pip:
         name:
           - flask
+          - discord
 
 - name: Deploy Agent
   hosts: all
@@ -22,6 +23,12 @@
       copy:
         src: ../agent/agent.py
         dest: /opt/init6/agent.py
+        mode: '0755'
+
+    - name: Upload Discord Script
+      copy:
+        src: ../agent/warnet.py
+        dest: /opt/init6/warnet.py
         mode: '0755'
 
     - name: Upload Agent Service File

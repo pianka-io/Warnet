@@ -53,7 +53,7 @@ source "amazon-ebs" "baseline" {
     "us-west-2",
     "ca-central-1",
     "ca-west-1",
-    "sa-east-1",
+#    "sa-east-1",
     "eu-central-1",
     "eu-west-1",
     "eu-west-2",
@@ -62,17 +62,17 @@ source "amazon-ebs" "baseline" {
     "eu-south-2",
     "eu-north-1",
     "eu-central-2",
-    "me-south-1",
-    "me-central-1",
-    "il-central-1",
-    "af-south-1"
+#    "me-south-1",
+#    "me-central-1",
+#    "il-central-1",
+#    "af-south-1"
   ]
 
   force_deregister            = true
   force_delete_snapshot       = true
 
   ami_name                    = "${var.ami_name}"
-  instance_type               = "t2.xlarge"
+  instance_type               = "t2.large"
   iam_instance_profile        = "certbot-instance-profile"
   source_ami                  = "ami-0eb070c40e6a142a3"
   ssh_username                = "ec2-user"

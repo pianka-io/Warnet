@@ -1,4 +1,6 @@
 import asyncio
+
+import aiohttp
 import boto3
 import logging
 import random
@@ -20,7 +22,7 @@ REGION_NAMES = {
     "mx-central-1": "Querétaro, Mexico (NORAM)",
     "ca-central-1": "Montreal, Canada (NORAM)",
     "ca-west-1": "Calgary, Canada (NORAM)",
-    "sa-east-1": "São Paulo, Brazil (LATAM)",
+    # "sa-east-1": "São Paulo, Brazil (LATAM)",
     "eu-central-1": "Frankfurt, Germany (EMEA)",
     "eu-west-1": "Dublin, Ireland (EMEA)",
     "eu-west-2": "London, UK (EMEA)",
@@ -29,10 +31,10 @@ REGION_NAMES = {
     "eu-south-2": "Aragón, Spain (EMEA)",
     "eu-north-1": "Stockholm, Sweden (EMEA)",
     "eu-central-2": "Zürich, Switzerland (EMEA)",
-    "me-south-1": "Manama, Bahrain (EMEA)",
-    "me-central-1": "United Arab Emirates (EMEA)",
-    "il-central-1": "Tel Aviv, Israel (EMEA)",
-    "af-south-1": "Cape Town, South Africa (EMEA)"
+    # "me-south-1": "Manama, Bahrain (EMEA)",
+    # "me-central-1": "United Arab Emirates (EMEA)",
+    # "il-central-1": "Tel Aviv, Israel (EMEA)",
+    # "af-south-1": "Cape Town, South Africa (EMEA)"
 }
 DNS_ZONE_ID = "Z08087823H6YLIRFX7JR5"
 DNS_RECORD_NAME = "war.pianka.io"
@@ -49,7 +51,7 @@ def lambda_handler(event, context):
         set_last_used_region(random_region)
 
         ami_id = get_latest_warnet_ami(random_region)
-        instance_type = "t3.large" if random_region in [
+        instance_type = "t3.xlarge" if random_region in [
             "mx-central-1",
             "ca-west-1",
             "ca-central-1",
@@ -61,7 +63,7 @@ def lambda_handler(event, context):
             "me-central-1",
             "il-central-1",
             "af-south-1"
-        ] else "t2.large"
+        ] else "t2.xlarge"
         logger.info(f"Choosing {random_region} for the next region.")
 
         ec2_client = boto3.client("ec2", region_name=random_region)
@@ -101,9 +103,12 @@ def lambda_handler(event, context):
         new_instance_ip = new_instance_description["Reservations"][0]["Instances"][0]["PublicIpAddress"]
         # internal_ip = new_instance_description["Reservations"][0]["Instances"][0]["PrivateIpAddress"]
 
-        requests.post(f"http://{new_instance_ip}:8080/update-location", json={"location": location, "ip_address": new_instance_ip})
-        logger.info(f"Sent location update request to agent on {new_instance_ip}")
-        time.sleep(180)
+        try:
+            requests.post(f"http://{new_instance_ip}:8889/update-location", json={"location": location, "ip_address": new_instance_ip})
+            logger.info(f"Sent location update request to agent on {new_instance_ip}")
+            time.sleep(180)
+        except:
+            ...
 
         for region in REGION_NAMES.keys():
             ec2_client = boto3.client("ec2", region_name=region)
@@ -113,7 +118,10 @@ def lambda_handler(event, context):
             for reservation in instances["Reservations"]:
                 for instance in reservation["Instances"]:
                     instance_id = instance["InstanceId"]
-                    if instance_id != new_instance_id:
+                    instance_name = next(
+                        (tag["Value"] for tag in instance.get("Tags", []) if tag["Key"] == "Name"), ""
+                    )
+                    if instance_id != new_instance_id and instance_name != "WindowsServer":
                         try:
                             ec2_client.terminate_instances(InstanceIds=[instance_id])
                         except ec2_client.exceptions.ClientError as e:
@@ -186,20 +194,36 @@ async def send_message(message_content, image_url):
 
             await channel.send(embed=embed)
             logger.info(f"Message sent to channel {CHANNEL_ID}: {message_content}")
+        except (aiohttp.ClientConnectionError, discord.HTTPException) as e:
+            logger.warning(f"Ignoring connection error: {str(e)}")
         except Exception as e:
             logger.error(f"Error sending message: {str(e)}")
         finally:
-            await client.close()
+            try:
+                await client.close()
+            except Exception:
+                pass
 
-    await client.start(get_secret("discord_token_ugh"))
+    try:
+        await client.start(get_secret("discord_token_ugh"))
+    except (aiohttp.ClientConnectionError, discord.HTTPException) as e:
+        logger.warning(f"Ignoring connection error on start: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error in Discord client: {str(e)}")
+    finally:
+        try:
+            await client.close()
+        except Exception:
+            pass
 
 
 def choose_weighted_region(exclude_region=None):
     weighted_regions = {
         "us-east-2": 3, "us-east-1": 3, "us-west-1": 3, "us-west-2": 3, "mx-central-1": 3, "ca-central-1": 3, "ca-west-1": 3,
-        "sa-east-1": 2, "eu-central-1": 2, "eu-west-1": 2, "eu-west-2": 2, "eu-south-1": 2, "eu-west-3": 2, "eu-south-2": 2,
+        # "sa-east-1": 2,
+        "eu-central-1": 2, "eu-west-1": 2, "eu-west-2": 2, "eu-south-1": 2, "eu-west-3": 2, "eu-south-2": 2,
         "eu-north-1": 2, "eu-central-2": 2,
-        "me-south-1": 1, "me-central-1": 1, "il-central-1": 1, "af-south-1": 1,
+        # "me-south-1": 1, "me-central-1": 1, "il-central-1": 1, "af-south-1": 1,
         # Placeholder for future expansion
         # "ap-southeast-1": 0.5, "ap-northeast-1": 0.5
     }
@@ -325,43 +349,52 @@ def set_last_used_region(region):
 
 
 def revoke_port_6112(ec2_client, security_group_id):
-    ec2_client.revoke_security_group_ingress(
-        GroupId=security_group_id,
-        IpProtocol="tcp",
-        FromPort=6112,
-        ToPort=6112,
-        CidrIp="0.0.0.0/0"
-    )
-    ec2_client.revoke_security_group_ingress(
-        GroupId=security_group_id,
-        IpProtocol="tcp",
-        FromPort=443,
-        ToPort=443,
-        CidrIp="0.0.0.0/0"
-    )
-    logger.info("Revoked ports 6112 and 443 access.")
+    try:
+        ec2_client.revoke_security_group_ingress(
+            GroupId=security_group_id,
+            IpProtocol="tcp",
+            FromPort=6112,
+            ToPort=6112,
+            CidrIp="0.0.0.0/0"
+        )
+        ec2_client.revoke_security_group_ingress(
+            GroupId=security_group_id,
+            IpProtocol="tcp",
+            FromPort=443,
+            ToPort=443,
+            CidrIp="0.0.0.0/0"
+        )
+        logger.info("Revoked ports 6112 and 443 access.")
+    except:
+        ...
 
 
 def allow_port_6112(security_group_id, region):
-    regional_ec2_client = boto3.client("ec2", region_name=region)
-    regional_ec2_client.authorize_security_group_ingress(
-        GroupId=security_group_id,
-        IpProtocol="tcp",
-        FromPort=6112,
-        ToPort=6112,
-        CidrIp="0.0.0.0/0"
-    )
-    logger.info("Restored port 6112 access.")
+    try:
+        regional_ec2_client = boto3.client("ec2", region_name=region)
+        regional_ec2_client.authorize_security_group_ingress(
+            GroupId=security_group_id,
+            IpProtocol="tcp",
+            FromPort=6112,
+            ToPort=6112,
+            CidrIp="0.0.0.0/0"
+        )
+        logger.info("Restored port 6112 access.")
+    except:
+        ...
 
 
 def allow_port_443(security_group_id, region):
-    regional_ec2_client = boto3.client("ec2", region_name=region)
-    regional_ec2_client.authorize_security_group_ingress(
-        GroupId=security_group_id,
-        IpProtocol="tcp",
-        FromPort=443,
-        ToPort=443,
-        CidrIp="0.0.0.0/0"
-    )
-    logger.info("Restored port 443 access.")
+    try:
+        regional_ec2_client = boto3.client("ec2", region_name=region)
+        regional_ec2_client.authorize_security_group_ingress(
+            GroupId=security_group_id,
+            IpProtocol="tcp",
+            FromPort=443,
+            ToPort=443,
+            CidrIp="0.0.0.0/0"
+        )
+        logger.info("Restored port 443 access.")
+    except:
+        ...
 
