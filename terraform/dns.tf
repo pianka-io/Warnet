@@ -17,6 +17,15 @@ resource "aws_route53_record" "naked" {
   }
 }
 
+resource "aws_route53_record" "game" {
+  zone_id = aws_route53_zone.war_pianka_io.zone_id
+  name    = "game.war.pianka.io"
+  type    = "A"
+  ttl     = 300
+
+  records = [aws_instance.gamenet.public_ip]
+}
+
 resource "aws_route53_record" "www" {
   zone_id = aws_route53_zone.war_pianka_io.zone_id
   name    = "db.war.pianka.io"

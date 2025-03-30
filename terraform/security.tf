@@ -113,6 +113,14 @@ resource "aws_vpc_security_group_egress_rule" "ec2_rds" {
   to_port                      = 3306
 }
 
+resource "aws_vpc_security_group_ingress_rule" "ec2_akka" {
+  security_group_id = aws_security_group.ec2.id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 2552
+  ip_protocol       = "udp"
+  to_port           = 2552
+}
+
 resource "aws_vpc_security_group_egress_rule" "ec2_all" {
   security_group_id = aws_security_group.ec2.id
   cidr_ipv4         = "0.0.0.0/0"

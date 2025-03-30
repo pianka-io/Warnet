@@ -15,7 +15,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 REGION_NAMES = {
-    "us-east-2": "Ohio, USA (NORAM)",
+    # "us-east-2": "Ohio, USA (NORAM)",
     "us-east-1": "Virginia, USA (NORAM)",
     "us-west-1": "California, USA (NORAM)",
     "us-west-2": "Oregon, USA (NORAM)",
@@ -51,7 +51,7 @@ def lambda_handler(event, context):
         set_last_used_region(random_region)
 
         ami_id = get_latest_warnet_ami(random_region)
-        instance_type = "t3.xlarge" if random_region in [
+        instance_type = "t3.large" if random_region in [
             "mx-central-1",
             "ca-west-1",
             "ca-central-1",
@@ -63,7 +63,7 @@ def lambda_handler(event, context):
             "me-central-1",
             "il-central-1",
             "af-south-1"
-        ] else "t2.xlarge"
+        ] else "t2.large"
         logger.info(f"Choosing {random_region} for the next region.")
 
         ec2_client = boto3.client("ec2", region_name=random_region)
