@@ -219,7 +219,8 @@ async def send_message(message_content, image_url):
 
 def choose_weighted_region(exclude_region=None):
     weighted_regions = {
-        "us-east-2": 3, "us-east-1": 3, "us-west-1": 3, "us-west-2": 3, "mx-central-1": 3, "ca-central-1": 3, "ca-west-1": 3,
+        # "us-east-2": 3,
+        "us-east-1": 3, "us-west-1": 3, "us-west-2": 3, "mx-central-1": 3, "ca-central-1": 3, "ca-west-1": 3,
         # "sa-east-1": 2,
         "eu-central-1": 2, "eu-west-1": 2, "eu-west-2": 2, "eu-south-1": 2, "eu-west-3": 2, "eu-south-2": 2,
         "eu-north-1": 2, "eu-central-2": 2,
