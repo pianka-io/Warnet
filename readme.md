@@ -128,7 +128,7 @@ us-east-1: ami-0xxxxxxxxxxxxx
 
 **Save the us-east-2 AMI ID** - you'll need it for deployment.
 
-## Part 3: Deploy New AMI with Terraform
+## Part 3: Deploy New AMI with Terraform (not needed unless redeploying all of Warnet)
 
 ### 3.1 Update Terraform Configuration
 
