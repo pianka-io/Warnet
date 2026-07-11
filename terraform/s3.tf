@@ -7,6 +7,15 @@ resource "aws_s3_bucket" "public_bucket" {
   }
 }
 
+resource "aws_s3_bucket" "certs" {
+  bucket = "warnet-certs-869935095159"
+
+  tags = {
+    Name        = "warnet-certs-869935095159"
+    Environment = "Private"
+  }
+}
+
 resource "aws_s3_bucket_policy" "public_read_policy" {
   bucket = aws_s3_bucket.public_bucket.id
 

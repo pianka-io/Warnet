@@ -170,6 +170,38 @@ resource "aws_iam_policy_attachment" "route53_certbot_attach" {
   policy_arn = aws_iam_policy.route53_certbot.arn
 }
 
+resource "aws_iam_policy" "certbot_s3" {
+  name        = "CertbotS3CertCachePolicy"
+  description = "Allows instances to read and write the shared certificate cache"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject"
+        ]
+        Resource = "${aws_s3_bucket.certs.arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = aws_s3_bucket.certs.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy_attachment" "certbot_s3_attach" {
+  name       = "certbot-s3-attach"
+  roles      = [aws_iam_role.certbot_ec2_role.name]
+  policy_arn = aws_iam_policy.certbot_s3.arn
+}
+
 resource "aws_iam_instance_profile" "certbot_instance_profile" {
   name = "certbot-instance-profile"
   role = aws_iam_role.certbot_ec2_role.name

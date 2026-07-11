@@ -40,6 +40,32 @@
         group: root
         mode: '0600'
 
+    - name: Install acme.sh for automated certificate renewal
+      shell: curl -s https://get.acme.sh | sh -s email=rick@pianka.io
+      args:
+        creates: /root/.acme.sh/acme.sh
+
+    - name: Upload certificate auto-renewal script
+      copy:
+        src: resources/cert-renew.sh
+        dest: /usr/local/bin/cert-renew.sh
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Check for a newer certificate on boot
+      cron:
+        name: "cert renew on boot"
+        special_time: reboot
+        job: "sleep 90 && /usr/local/bin/cert-renew.sh >> /var/log/cert-renew.log 2>&1"
+
+    - name: Check certificate expiry daily
+      cron:
+        name: "cert renew daily"
+        minute: "17"
+        hour: "3"
+        job: "/usr/local/bin/cert-renew.sh >> /var/log/cert-renew.log 2>&1"
+
     - name: Create Diffie-Hellman group
       command: openssl dhparam -out /etc/ssl/dhparam.pem 2048
       args:
