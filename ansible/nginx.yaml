@@ -41,7 +41,7 @@
         mode: '0600'
 
     - name: Install acme.sh for automated certificate renewal
-      shell: curl -s https://get.acme.sh | sh -s email=rick@pianka.io
+      shell: curl -s https://get.acme.sh | sh -s -- --nocron email=rick@pianka.io
       args:
         creates: /root/.acme.sh/acme.sh
 

@@ -276,7 +276,7 @@ Every instance runs `/usr/local/bin/cert-renew.sh` (source: `ansible/resources/c
 Because instances check S3 before issuing, only the first instance inside the renewal window ever contacts Let's Encrypt, which stays far under the duplicate-certificate rate limit (5/week).
 
 Supporting infrastructure (also in `terraform/s3.tf` and `terraform/iam.tf`):
-- S3 bucket `warnet-certs-869935095159` (private, all public access blocked)
+- S3 bucket `warnet-certs-869935095159` (private, all public access blocked, SSE-KMS encrypted, versioned)
 - IAM policy `CertbotS3CertCachePolicy` (Get/Put on that bucket only) attached to `certbot-ec2-role`
 
 ### Manual renewal (fallback)

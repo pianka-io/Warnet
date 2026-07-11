@@ -22,6 +22,18 @@ expiry() { date -d "$(openssl x509 -enddate -noout -in "$1" | cut -d= -f2)" +%s;
 
 reload_nginx() { systemctl reload nginx 2>/dev/null || systemctl restart nginx; }
 
+# Upload with retries: if S3 goes stale after an issuance, every 2h instance
+# rotation re-issues and stacks duplicate certs, so failures must be loud.
+upload() {
+  for attempt in 1 2 3; do
+    if aws s3 cp "$1" "$2" --region "$REGION"; then
+      return 0
+    fi
+    sleep $(( attempt * 10 ))
+  done
+  return 1
+}
+
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
@@ -54,6 +66,10 @@ install -o root -g root -m 644 "${CERT_DIR}/fullchain.cer" "${LIVE_DIR}/fullchai
 install -o root -g root -m 600 "${CERT_DIR}/${DOMAIN}.key" "${LIVE_DIR}/privkey.pem"
 reload_nginx
 
-aws s3 cp "${LIVE_DIR}/fullchain.pem" "s3://${BUCKET}/${DOMAIN}/fullchain.pem" --region "$REGION"
-aws s3 cp "${LIVE_DIR}/privkey.pem" "s3://${BUCKET}/${DOMAIN}/privkey.pem" --region "$REGION"
-log "New certificate installed and uploaded to S3."
+if upload "${LIVE_DIR}/fullchain.pem" "s3://${BUCKET}/${DOMAIN}/fullchain.pem" \
+&& upload "${LIVE_DIR}/privkey.pem" "s3://${BUCKET}/${DOMAIN}/privkey.pem"; then
+  log "New certificate installed and uploaded to S3."
+else
+  log "ALERT: certificate issued but S3 upload failed after retries; cache at s3://${BUCKET} is stale and rotating instances will re-issue until fixed."
+  exit 1
+fi

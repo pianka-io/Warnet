@@ -16,6 +16,35 @@ resource "aws_s3_bucket" "certs" {
   }
 }
 
+resource "aws_s3_bucket_public_access_block" "certs" {
+  bucket = aws_s3_bucket.certs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "certs" {
+  bucket = aws_s3_bucket.certs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      # AWS-managed aws/s3 key: no extra IAM needed on certbot-ec2-role
+      sse_algorithm = "aws:kms"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_versioning" "certs" {
+  bucket = aws_s3_bucket.certs.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_policy" "public_read_policy" {
   bucket = aws_s3_bucket.public_bucket.id
 
