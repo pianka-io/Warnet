@@ -264,17 +264,37 @@ export AWS_SECRET_ACCESS_KEY="your-secret"
 
 ## Certificate Renewal Schedule
 
-Let's Encrypt certificates are valid for 90 days. Schedule renewals at:
-- **Day 60**: Start renewal process
-- **Day 75**: Urgently renew if not done
-- **Day 85**: Emergency renewal (5 days before expiration)
+Renewal is now automated — no AMI rebuild is required for certificate renewals.
 
-To automate this in the future, consider setting up certbot on the EC2 instances with automatic renewal via cron.
+### How it works
+
+Every instance runs `/usr/local/bin/cert-renew.sh` (source: `ansible/resources/cert-renew.sh`) on boot and daily via cron:
+
+1. **Sync from S3**: pulls `s3://warnet-certs-869935095159/war.pianka.io/` and installs it if newer than the local cert, then reloads nginx. Since the orchestrator replaces the instance every 2 hours, fresh instances always come up with the latest cert even when the AMI's baked-in copy is stale.
+2. **Renew when needed**: if the installed cert expires within 30 days, the instance issues a new one with acme.sh via Route53 DNS-01 (using the `certbot-ec2-role` instance-profile credentials — no keys on disk), installs it, reloads nginx, and uploads it back to S3.
+
+Because instances check S3 before issuing, only the first instance inside the renewal window ever contacts Let's Encrypt, which stays far under the duplicate-certificate rate limit (5/week).
+
+Supporting infrastructure (also in `terraform/s3.tf` and `terraform/iam.tf`):
+- S3 bucket `warnet-certs-869935095159` (private, all public access blocked, SSE-KMS encrypted, versioned)
+- IAM policy `CertbotS3CertCachePolicy` (Get/Put on that bucket only) attached to `certbot-ec2-role`
+
+### Manual renewal (fallback)
+
+The Part 1 process above still works if the automation ever breaks. After manually issuing a cert, also upload it to the S3 cache:
+
+```bash
+aws s3 cp ~/.acme.sh/war.pianka.io_ecc/fullchain.cer s3://warnet-certs-869935095159/war.pianka.io/fullchain.pem
+aws s3 cp ~/.acme.sh/war.pianka.io_ecc/war.pianka.io.key s3://warnet-certs-869935095159/war.pianka.io/privkey.pem
+```
+
+Running instances pick it up within a day (or on the next 2-hour rotation).
 
 ## To Do List
 - [x] Block all AWS traffic (https://ip-ranges.amazonaws.com/ip-ranges.json)
 - [ ] Background cron job to make sure the server finishes booting up
 - [x] Add a Let's Encrypt certificate to the websocket endpoint
+- [x] Automate certificate renewal (S3 cache + on-instance acme.sh, see Certificate Renewal Schedule)
 
 ## Questions or Issues?
 
