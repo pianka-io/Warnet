@@ -114,9 +114,11 @@ resource "aws_iam_policy" "route53_certbot" {
         Resource = "*"
       },
       {
+        # acme.sh dns_aws lists existing TXT records before upserting the challenge
         Effect = "Allow"
         Action = [
-          "route53:ChangeResourceRecordSets"
+          "route53:ChangeResourceRecordSets",
+          "route53:ListResourceRecordSets"
         ]
         Resource = "arn:aws:route53:::hostedzone/${aws_route53_zone.war_pianka_io.zone_id}"
       },
@@ -126,22 +128,6 @@ resource "aws_iam_policy" "route53_certbot" {
           "route53:GetChange"
         ]
         Resource = "arn:aws:route53:::change/*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "route53:ListHostedZones"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "route53:ChangeResourceRecordSets",
-          "route53:ListHostedZones",
-          "route53:GetChange"
-        ]
-        Resource = "arn:aws:route53:::hostedzone/${aws_route53_zone.war_pianka_io.zone_id}"
       }
     ]
   })
